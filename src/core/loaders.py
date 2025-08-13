@@ -34,36 +34,55 @@ def _load_module_from_path(module_name: str, file_path: Path) -> None:
 
 
 def load_tools(mcp: FastMCP, tools_dir: Path) -> int:
+    """Load tool modules using package import names consistently with hot‑reload.
+
+    We import modules as "tools.<name>" so that hot‑reload can safely reload the
+    same module names without creating duplicate registrations.
+    """
     added = 0
     if not tools_dir.exists():
         return 0
     for py_file in tools_dir.glob("*.py"):
         if py_file.name == "__init__.py":
             continue
-        module_name = f"tools__{py_file.stem}"
+        module_name_pkg = f"tools.{py_file.stem}"
+        module_name_synth = f"tools__{py_file.stem}"
         try:
-            _load_module_from_path(module_name, py_file)
-            log.info(f"Loaded tool module: {py_file.name}")
+            # Prefer package import if available
+            importlib.import_module(module_name_pkg)
+            log.info(f"Loaded tool module: {module_name_pkg}")
             added += 1
         except Exception:
-            log.exception(f"Failed to load tool: {py_file}")
+            try:
+                _load_module_from_path(module_name_synth, py_file)
+                log.info(f"Loaded tool module (synthetic): {module_name_synth}")
+                added += 1
+            except Exception:
+                log.exception(f"Failed to load tool: {py_file}")
     return added
 
 
 def load_resources(mcp: FastMCP, resources_dir: Path) -> int:
+    """Load resource modules using package import names consistently."""
     added = 0
     if not resources_dir.exists():
         return 0
     for py_file in resources_dir.glob("*.py"):
         if py_file.name == "__init__.py":
             continue
-        module_name = f"resources__{py_file.stem}"
+        module_name_pkg = f"resources.{py_file.stem}"
+        module_name_synth = f"resources__{py_file.stem}"
         try:
-            _load_module_from_path(module_name, py_file)
-            log.info(f"Loaded resource module: {py_file.name}")
+            importlib.import_module(module_name_pkg)
+            log.info(f"Loaded resource module: {module_name_pkg}")
             added += 1
         except Exception:
-            log.exception(f"Failed to load resource: {py_file}")
+            try:
+                _load_module_from_path(module_name_synth, py_file)
+                log.info(f"Loaded resource module (synthetic): {module_name_synth}")
+                added += 1
+            except Exception:
+                log.exception(f"Failed to load resource: {py_file}")
     return added
 
 
@@ -145,6 +164,27 @@ def load_prompts(mcp: FastMCP, prompts_dir: Path) -> int:
                 description = p.get("description", "")
                 tags = set(p.get("tags", []) or [])
 
+                # Best‑effort de‑duplication: remove existing prompt with same name
+                try:
+                    if hasattr(mcp, "remove_prompt"):
+                        # type: ignore[attr-defined]
+                        mcp.remove_prompt(name)  # noqa: F821
+                    elif hasattr(mcp, "prompts"):
+                        prompts_attr = getattr(mcp, "prompts")
+                        if isinstance(prompts_attr, dict):
+                            prompts_attr.pop(name, None)
+                        else:
+                            try:
+                                filtered = [pr for pr in prompts_attr if getattr(pr, "name", None) == name]
+                                if filtered:
+                                    remaining = [pr for pr in prompts_attr if getattr(pr, "name", None) != name]
+                                    setattr(mcp, "prompts", remaining)
+                            except Exception:
+                                pass
+                except Exception:
+                    # Non‑fatal; proceed to add (may result in duplicate in some SDK versions)
+                    pass
+
                 def _make_prompt_fn(render_text: str):
                     # Create a zero-arg function; FastMCP FunctionPrompt forbids **kwargs-only
                     def _fn():
@@ -162,7 +202,11 @@ def load_prompts(mcp: FastMCP, prompts_dir: Path) -> int:
                             prompt_obj.tags = set(tags)
                         except Exception:
                             pass
-                    mcp.add_prompt(prompt_obj)
+                    # Attempt replace if supported
+                    try:
+                        mcp.add_prompt(prompt_obj, replace=True)  # type: ignore[call-arg]
+                    except Exception:
+                        mcp.add_prompt(prompt_obj)
                     log.info(f"Registered prompt: {name} (from {f.name})")
                     added += 1
                 except Exception:

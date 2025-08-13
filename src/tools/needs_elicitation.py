@@ -22,7 +22,7 @@ async def delete_all(ctx: Context) -> str:
         return "Operation cancelled"
 
 @mcp.tool
-async def get_weather(location: str = None, ctx: Context = None) -> str:
+async def get_weather(location: str | None = None, ctx: Context | None = None) -> str:
     """Get weather for a location, asking user if not specified."""
     if not location:
         # Ask user for the location
