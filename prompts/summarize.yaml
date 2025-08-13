@@ -1,0 +1,7 @@
+name: summarize
+description: Summarize a document with clear section markers.
+prompt: |
+  Summarize the following text:
+  <document>{document}</document>
+  Use clear, concise language.
+  <output_schema>{output_schema}</output_schema>

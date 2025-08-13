@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastmcp-unified
+  namespace: mcp
+spec:
+  selector:
+    app: fastmcp-unified
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+  type: ClusterIP

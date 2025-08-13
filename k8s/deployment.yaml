@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastmcp-unified
+  namespace: mcp
+  labels:
+    app: fastmcp-unified
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fastmcp-unified
+  template:
+    metadata:
+      labels:
+        app: fastmcp-unified
+    spec:
+      containers:
+        - name: server
+          image: image-registry.openshift-image-registry.svc:5000/mcp/fastmcp-unified:latest
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: MCP_SERVER_NAME
+              value: fastmcp-unified
+            - name: MCP_TRANSPORT
+              value: "http"
+            - name: MCP_HTTP_HOST
+              value: 0.0.0.0
+            - name: MCP_HTTP_PORT
+              value: "8080"
+            - name: MCP_HTTP_PATH
+              value: /mcp/
+            - name: MCP_HOT_RELOAD
+              value: "0"
+            - name: MCP_HTTP_ALLOWED_ORIGINS
+              value: "https://*.apps.cluster.local,https://*.openshiftapps.com"
+            - name: MCP_AUTH_JWT_ALG
+              valueFrom:
+                secretKeyRef:
+                  name: fastmcp-auth
+                  key: alg
+                  optional: true
+            - name: MCP_AUTH_JWT_PUBLIC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fastmcp-auth
+                  key: public_key
+                  optional: true
+            - name: MCP_AUTH_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: fastmcp-auth
+                  key: secret
+                  optional: true
+            - name: MCP_REQUIRED_SCOPES
+              value: "mutation:write"
+          volumeMounts:
+            - name: prompts
+              mountPath: /app/prompts
+          ports:
+            - name: http
+              containerPort: 8080
+      volumes:
+        - name: prompts
+          configMap:
+            name: fastmcp-prompts

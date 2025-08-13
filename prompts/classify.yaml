@@ -1,0 +1,7 @@
+name: classify
+description: Classify text into categories.
+prompt: |
+  Classify the following text:
+  <text>{text}</text>
+  Return JSON matching this schema:
+  <output_schema>{output_schema}</output_schema>

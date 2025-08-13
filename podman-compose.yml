@@ -1,0 +1,16 @@
+version: "3.9"
+services:
+  mcp:
+    image: localhost/fastmcp-unified:latest
+    build:
+      context: .
+      dockerfile: Containerfile
+    environment:
+      MCP_TRANSPORT: http
+      MCP_HTTP_HOST: 0.0.0.0
+      MCP_HTTP_PORT: 8080
+      MCP_HTTP_PATH: /mcp/
+      MCP_HOT_RELOAD: "0"
+    ports:
+      - "8080:8080"
+    command: ["python", "-m", "src.main"]
