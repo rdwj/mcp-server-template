@@ -1,89 +1,59 @@
-.PHONY: install run dev test test-preview docker k8s-apply k8s-delete podman podman-up oc-setup oc-bc-start oc-bc-logs oc-bc-binary oc-bc-binary-start
+.PHONY: install run-local test test-local deploy clean help
 
-VENV ?=.venv
-PY ?=python
+# Variables
+VENV ?= .venv
+PYTHON ?= python3
+PROJECT ?= mcp-demo
 
-HAS_UV := $(shell command -v uv 2>/dev/null)
+# Default target
+help:
+	@echo "MCP Server Template - Available Commands"
+	@echo "========================================"
+	@echo "Local Development:"
+	@echo "  make install     - Install dependencies"
+	@echo "  make run-local   - Run server locally (STDIO mode)"
+	@echo "  make test-local  - Test with cmcp locally"
+	@echo "  make test        - Run pytest suite"
+	@echo ""
+	@echo "OpenShift Deployment:"
+	@echo "  make deploy      - Deploy to OpenShift (PROJECT=name)"
+	@echo "  make clean       - Remove from OpenShift"
+	@echo ""
+	@echo "Other:"
+	@echo "  make help        - Show this help message"
 
+# Install dependencies
 install:
-ifdef HAS_UV
-	uv sync
-else
-	$(PY) -m venv $(VENV)
-	. $(VENV)/bin/activate; pip install -U pip; pip install -e .
-endif
+	$(PYTHON) -m venv $(VENV)
+	$(VENV)/bin/pip install --upgrade pip
+	$(VENV)/bin/pip install -r requirements.txt
+	@echo "✅ Installation complete. Activate with: source $(VENV)/bin/activate"
 
-run:
-	MCP_HOT_RELOAD=1 MCP_TRANSPORT=stdio $(PY) -m src.main
+# Run locally with STDIO for cmcp testing
+run-local: install
+	@echo "Starting MCP server in STDIO mode..."
+	@echo "Test with: cmcp '$(VENV)/bin/python -m src.main' tools/list"
+	MCP_TRANSPORT=stdio MCP_HOT_RELOAD=1 $(VENV)/bin/python -m src.main
 
-dev: install run
+# Test locally with cmcp
+test-local:
+	@echo "Testing MCP server with cmcp..."
+	@echo "Listing tools..."
+	@cmcp "$(VENV)/bin/python -m src.main" tools/list || echo "cmcp not installed. Install with: pip install cmcp"
 
+# Run pytest tests
 test:
-ifdef HAS_UV
-	uv run pytest -q
-else
-	. $(VENV)/bin/activate; pytest -q
-endif
+	$(VENV)/bin/pytest tests/ -v
 
-# Focused test for the prompt preview CLI
-# Usage: make test-preview  (runs tests/test_preview_prompt.py only)
-# You can pass -k filters: make test-preview ARGS="-k missing_schema"
-TEST_PREVIEW_PATH := tests/test_preview_prompt.py
+# Deploy to OpenShift
+deploy:
+	@echo "Deploying to OpenShift project: $(PROJECT)"
+	./deploy.sh $(PROJECT)
 
-test-preview:
-ifdef HAS_UV
-	uv run pytest -q $(TEST_PREVIEW_PATH) $(ARGS)
-else
-	. $(VENV)/bin/activate; pytest -q $(TEST_PREVIEW_PATH) $(ARGS)
-endif
+# Clean up OpenShift deployment
+clean:
+	@echo "Cleaning up OpenShift project: $(PROJECT)"
+	@oc delete -f openshift.yaml -n $(PROJECT) --ignore-not-found=true || echo "Not deployed or already cleaned"
 
-docker:
-	docker build -t fastmcp-unified:latest .
-
-podman:
-	podman build -t localhost/fastmcp-unified:latest -f Containerfile .
-
-podman-up:
-	podman-compose up --build -d
-
-k8s-apply:
-	kubectl apply -f k8s/namespace.yaml
-	kubectl apply -f k8s/imagestream.yaml
-	kubectl apply -f k8s/buildconfig.yaml || true
-	kubectl apply -f k8s/buildconfig-binary.yaml || true
-	kubectl apply -f k8s/configmap-prompts.yaml || true
-	kubectl apply -f k8s/deployment.yaml
-	kubectl apply -f k8s/service.yaml
-	kubectl apply -f k8s/route.yaml || true
-	kubectl apply -f k8s/hpa.yaml
-
-k8s-delete:
-	kubectl delete -f k8s/hpa.yaml --ignore-not-found
-	kubectl delete -f k8s/route.yaml --ignore-not-found
-	kubectl delete -f k8s/service.yaml --ignore-not-found
-	kubectl delete -f k8s/deployment.yaml --ignore-not-found
-	kubectl delete -f k8s/configmap-prompts.yaml --ignore-not-found
-	kubectl delete -f k8s/buildconfig.yaml --ignore-not-found
-	kubectl delete -f k8s/buildconfig-binary.yaml --ignore-not-found
-	kubectl delete -f k8s/imagestream.yaml --ignore-not-found
-	kubectl delete -f k8s/namespace.yaml --ignore-not-found
-
-oc-setup:
-	oc project mcp || oc new-project mcp
-	oc apply -f k8s/imagestream.yaml
-	oc apply -f k8s/buildconfig.yaml
-
-oc-bc-start:
-	oc start-build fastmcp-unified --follow --wait -n mcp || true
-
-oc-bc-logs:
-	oc logs bc/fastmcp-unified -n mcp --follow
-
-# Start a binary build using the current directory
-oc-bc-binary:
-	oc project mcp || oc new-project mcp
-	oc apply -f k8s/imagestream.yaml
-	oc apply -f k8s/buildconfig-binary.yaml
-
-oc-bc-binary-start:
-	oc start-build fastmcp-unified-binary --from-dir=. --follow --wait -n mcp
+# Development shortcuts
+dev: run-local

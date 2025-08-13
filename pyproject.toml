@@ -23,7 +23,6 @@ packages = ["src"]
 
 [project.scripts]
 fastmcp-unified = "src.main:main"
-mcp-deploy = "src.ops.deploy_cli:main"
 
 [tool.black]
 line-length = 88

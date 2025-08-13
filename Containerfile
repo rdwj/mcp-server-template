@@ -1,25 +1,22 @@
-# syntax=docker/dockerfile:1
-FROM registry.redhat.io/ubi9/python-311:latest AS base
-
-# Use uv for fast installs when available
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
-
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    UV_SYSTEM_PYTHON=1 \
-    PATH="/opt/app-root/bin:$PATH"
+FROM registry.redhat.io/ubi9/python-311:latest
 
 WORKDIR /opt/app-root/src
 
-# Copy metadata and install
-COPY pyproject.toml README.md .
-COPY uv.lock* ./
-RUN uv sync --no-dev --no-cache || (echo "No lockfile yet; creating" && uv sync --no-cache)
+# Install dependencies with pip
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy source and prompts
+# Copy application code
 COPY src/ ./src/
 COPY prompts/ ./prompts/
-COPY .env.example ./
+
+# Set environment for HTTP transport
+ENV MCP_TRANSPORT=http \
+    MCP_HTTP_HOST=0.0.0.0 \
+    MCP_HTTP_PORT=8080 \
+    MCP_HTTP_PATH=/mcp/
 
 USER 1001
+
+# Run the application
 CMD ["python", "-m", "src.main"]
