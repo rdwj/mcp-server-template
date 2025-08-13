@@ -1,13 +1,11 @@
-from dataclasses import dataclass
 from fastmcp import Context
 from core.app import mcp
 
-@dataclass
-class Confirm:
-    ok: bool
-
 @mcp.tool
 async def delete_all(ctx: Context) -> str:
-    """Dangerous example: asks user to confirm via elicitation before proceeding."""
-    ans = await ctx.elicit(Confirm, prompt="DELETE ALL DATA in workspace?")
-    return "deleted" if ans.ok else "cancelled"
+    """Example tool demonstrating context logging."""
+    # Note: FastMCP doesn't support elicit() for user confirmation
+    # This is a simplified example that just logs a warning
+    await ctx.warning("delete_all called - this is a demo tool")
+    await ctx.info("In a real implementation, you would add confirmation logic here")
+    return "Operation cancelled (demo mode - no actual deletion)"

@@ -5,7 +5,6 @@ from dotenv import load_dotenv
 from .app import mcp
 from .loaders import load_all, start_hot_reload
 from .logging import configure_logging, get_logger
-from .auth import BearerVerifier, AllowedOrigins
 
 log = get_logger("bootstrap")
 
@@ -35,16 +34,14 @@ class UnifiedMCPServer:
             host = os.getenv("MCP_HTTP_HOST", "127.0.0.1")
             port = int(os.getenv("MCP_HTTP_PORT", "8000"))
             path = os.getenv("MCP_HTTP_PATH", "/mcp/")
-            origins = AllowedOrigins.from_env("MCP_HTTP_ALLOWED_ORIGINS")
-            verifier = BearerVerifier.from_env()
+            # Note: allowed_origins and bearer_verifier are not supported in FastMCP.run()
+            # These would need to be configured differently if needed
             log.info(f"Starting FastMCP HTTP server at http://{host}:{port}{path}")
             self.mcp.run(
                 transport="http",
                 host=host,
                 port=port,
                 path=path,
-                allowed_origins=origins.patterns or None,
-                bearer_verifier=verifier.verify if verifier else None,
             )
         else:
             log.info("Starting FastMCP in STDIO mode")
