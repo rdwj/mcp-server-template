@@ -172,6 +172,10 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture information.
 - OpenShift CLI (`oc`) for deployment
 - cmcp for local testing: `pip install cmcp`
 
+## Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details on how to get started, development setup, and submission guidelines.
+
 ## License
 
-MIT
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
