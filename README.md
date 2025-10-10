@@ -55,16 +55,44 @@ make deploy PROJECT=my-project
 
 ### Adding Tools
 
-Create a Python file in `src/tools/`:
+Create a Python file in `src/tools/`. Tools support rich type annotations, validation, and metadata:
 
 ```python
+from typing import Annotated
+from pydantic import Field
+from fastmcp import Context
+from fastmcp.exceptions import ToolError
 from src.core.app import mcp
 
-@mcp.tool()
-def my_tool(param: str) -> str:
-    """Tool description"""
+@mcp.tool(
+    annotations={
+        "readOnlyHint": True,
+        "idempotentHint": True,
+        "openWorldHint": False,
+    }
+)
+async def my_tool(
+    param: Annotated[str, Field(description="Parameter description", min_length=1, max_length=100)],
+    ctx: Context = None,
+) -> str:
+    """Tool description for the LLM."""
+    await ctx.info("Processing request")
+
+    if not param.strip():
+        raise ToolError("Parameter cannot be empty")
+
     return f"Result: {param}"
 ```
+
+**Best Practices:**
+- Use `Annotated` for parameter descriptions (FastMCP 2.11.0+)
+- Add Pydantic `Field` constraints for validation
+- Use tool `annotations` for hints about behavior
+- Always include `ctx: Context = None` for logging and capabilities
+- Raise `ToolError` for user-facing validation errors
+- Use structured output (dataclasses) for complex results
+
+See [TOOLS_GUIDE.md](docs/TOOLS_GUIDE.md) for comprehensive examples and patterns.
 
 ### Adding Resources
 
