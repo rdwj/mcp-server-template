@@ -15,10 +15,26 @@ This project implements a FastMCP 2.x server with local STDIO and OpenShift HTTP
 - `src/core/loaders.py`: Loads tools/resources/prompts from filesystem; hot-reload in dev
 - `src/core/auth.py`: Optional JWT verification and scope decorator
 - `src/tools/*.py`: Example tools including sampling and elicitation
+- `src/tools/advanced_examples.py`: Comprehensive examples of FastMCP best practices
 - `src/resources/*.py`: Example resource with explicit URI
 - `src/prompts/*.py`: Python-based prompts using FastMCP decorators (@mcp.prompt())
 - `src/tools/preview_prompt.py`: CLI to preview a prompt with injected schema and variable replacements
 - `src/ops/deploy_cli.py`: Interactive OpenShift deployer using `oc`
+
+### Tools Best Practices (FastMCP 2.11.0+)
+
+All tools follow FastMCP best practices:
+
+- **Annotated Descriptions** (v2.11.0+): Use `Annotated[type, "description"]` for parameter documentation
+- **Field Validation**: Use Pydantic `Field` for constraints (ranges, lengths, patterns)
+- **Tool Annotations** (v2.2.7+): Provide hints about tool behavior:
+  - `readOnlyHint`: Tool doesn't modify state
+  - `idempotentHint`: Same inputs produce same outputs
+  - `destructiveHint`: Tool performs destructive operations
+  - `openWorldHint`: Tool accesses external systems
+- **Structured Output** (v2.10.0+): Use dataclasses for complex return types
+- **Error Handling**: Use `ToolError` for user-facing validation errors
+- **Context Parameter**: Always include `ctx: Context = None` for logging and capabilities (sampling, elicitation)
 
 ## Runtime Flow (HTTP)
 
