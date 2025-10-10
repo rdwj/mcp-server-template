@@ -10,12 +10,13 @@ This project implements a FastMCP 2.x server with local STDIO and OpenShift HTTP
 
 ## Components
 
-- `src/core/app.py`: Instantiates `FastMCP` and shared logger
+- `src/core/app.py`: Instantiates `FastMCP` and shared logger; imports prompts module for decorator registration
 - `src/core/server.py`: Bootstraps logging, loads components, and runs server (STDIO or HTTP)
-- `src/core/loaders.py`: Loads tools/resources/prompts from filesystem; injects JSON schemas into prompts; hot-reload in dev
+- `src/core/loaders.py`: Loads tools/resources/prompts from filesystem; hot-reload in dev
 - `src/core/auth.py`: Optional JWT verification and scope decorator
 - `src/tools/*.py`: Example tools including sampling and elicitation
 - `src/resources/*.py`: Example resource with explicit URI
+- `src/prompts/*.py`: Python-based prompts using FastMCP decorators (@mcp.prompt())
 - `src/tools/preview_prompt.py`: CLI to preview a prompt with injected schema and variable replacements
 - `src/ops/deploy_cli.py`: Interactive OpenShift deployer using `oc`
 
@@ -47,9 +48,8 @@ flowchart TD
   E --> F[load_tools]
   E --> G[load_resources]
   E --> H[load_prompts]
-  H --> I{Contains output_schema?}
-  I -- Yes --> J[Inject JSON schema]
-  I -- No --> K[Leave prompt text unchanged]
+  H --> I[Import Python modules with @mcp.prompt decorators]
+  I --> J[Decorators auto-register prompts with FastMCP]
 ```
 
 ## OpenShift Build/Deploy
@@ -66,10 +66,34 @@ flowchart TD
 
 ## Key Decisions
 
-- Use FastMCP 2.x APIs: `FunctionPrompt.from_function(...)` + `mcp.add_prompt(...)`
+- Use FastMCP 2.x decorator APIs: `@mcp.prompt()` for Python-based prompts with type safety
+- Python prompts in `src/prompts/` use Pydantic Field annotations for parameter descriptions
 - Resource registration requires explicit URI: `@mcp.resource("resource://...")`
 - OpenShift-native builds: prefer Binary Build for local projects without Git; Git Build also supported
 - Images pulled from internal registry `image-registry.openshift-image-registry.svc:5000/<ns>/<name>:latest`
+
+## Prompt System
+
+Prompts are defined using Python decorators for better type safety and IDE support:
+
+- Location: `src/prompts/` directory with `__init__.py`, `analysis.py`, `documentation.py`, `general.py`
+- Pattern: Use `@mcp.prompt()` decorator on functions
+- Type annotations: Use `Annotated[type, Field(...)]` from Pydantic for parameters
+- Return types: Support `str`, `Message`, or `list[Message]`
+- Hot-reload: Changes to prompt modules are automatically reloaded in dev mode
+
+Example:
+```python
+from typing import Annotated
+from pydantic import Field
+from ..core.app import mcp
+
+@mcp.prompt()
+def summarize(
+    document: Annotated[str, Field(description="The document text to summarize")],
+) -> str:
+    return f"Summarize the following text:\n<document>{document}</document>"
+```
 
 ## Configuration
 
