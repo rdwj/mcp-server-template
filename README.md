@@ -1,11 +1,11 @@
 # FastMCP Server Template
 
-A production-ready MCP (Model Context Protocol) server template with dynamic tool/resource loading, YAML-based prompts, and seamless OpenShift deployment.
+A production-ready MCP (Model Context Protocol) server template with dynamic tool/resource loading, Python decorator-based prompts, and seamless OpenShift deployment.
 
 ## Features
 
 - 🔧 **Dynamic tool/resource loading** via decorators
-- 📝 **YAML prompts** with automatic JSON schema injection
+- 📝 **Python-based prompts** with type safety and FastMCP decorators
 - 🚀 **One-command OpenShift deployment**
 - 🔄 **Hot-reload** for local development
 - 🧪 **Local STDIO** and **OpenShift HTTP** transports
@@ -41,8 +41,8 @@ make deploy PROJECT=my-project
 ├── src/
 │   ├── core/           # Core server components
 │   ├── tools/          # Tool implementations
-│   └── resources/      # Resource implementations
-├── prompts/            # YAML prompt definitions
+│   ├── resources/      # Resource implementations
+│   └── prompts/        # Python-based prompt definitions
 ├── tests/              # Test suite
 ├── Containerfile       # Container definition
 ├── openshift.yaml      # OpenShift manifests
@@ -80,16 +80,31 @@ async def get_my_resource() -> str:
 
 ### Creating Prompts
 
-Add YAML file to `prompts/`:
+Create a Python file in `src/prompts/`:
 
-```yaml
-name: my_prompt
-description: Purpose of this prompt
-prompt: |
-  Your prompt text with {variable_name} placeholders
+```python
+from typing import Annotated
+from pydantic import Field
+from ..core.app import mcp
+
+@mcp.prompt()
+def my_prompt(
+    variable_name: Annotated[
+        str,
+        Field(description="Description of the parameter"),
+    ],
+) -> str:
+    """Purpose of this prompt"""
+    return f"Your prompt text with {variable_name}"
 ```
 
-For structured output, add a matching JSON schema file (same base name).
+Prompts return formatted strings that are used as prompts for LLM interactions.
+
+See `src/prompts/analysis.py`, `documentation.py`, and `general.py` for examples of:
+- Basic prompts with required parameters
+- Prompts with optional parameters and defaults
+- Prompts with Literal types for enum-like values
+- Structured output with JSON schemas
 
 ## Testing
 
@@ -146,22 +161,13 @@ make deploy       # Deploy to OpenShift
 make clean        # Clean up OpenShift deployment
 ```
 
-## Prompt Schema Injection
-
-If a prompt contains `{output_schema}`, the system automatically injects a minified JSON schema:
-
-```
-prompts/
-  summarize.yaml   # Contains {output_schema} placeholder
-  summarize.json   # Schema to inject
-```
-
 ## Architecture
 
 The server uses FastMCP 2.x with:
 - Dynamic component loading at startup
 - Hot-reload in development mode
-- Automatic prompt registration with schema injection
+- Python decorator-based prompts with type safety
+- Automatic prompt registration via `@mcp.prompt()` decorators
 - Support for both STDIO (local) and HTTP (OpenShift) transports
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture information.
