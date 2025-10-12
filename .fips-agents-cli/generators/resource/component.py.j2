@@ -1,0 +1,31 @@
+"""{{ description }}"""
+
+from core.app import mcp
+
+
+@mcp.resource("{{ uri|default('resource://' + component_name) }}", name="{{ component_name }}")
+{% if async %}async {% endif %}def {{ component_name }}() -> str:
+    """{{ description }}
+
+    Returns:
+        {{ return_description|default('Resource content as string') }}
+    """
+    # TODO: Implement resource retrieval
+    # Remove this placeholder and add your implementation
+
+{% if mime_type == "application/json" %}    # EXAMPLE: Return JSON data
+    # import json
+{% if async %}    # data = await load_data_from_db()
+{% else %}    # data = load_data_from_file()
+{% endif %}    # return json.dumps(data)
+{% elif mime_type == "text/plain" %}    # EXAMPLE: Return text content
+{% if async %}    # content = await load_text_file()
+{% else %}    # content = load_text_file()
+{% endif %}    # return content
+{% else %}    # EXAMPLE: Return custom content
+{% if async %}    # content = await fetch_content()
+{% else %}    # content = fetch_content()
+{% endif %}    # return content
+{% endif %}
+
+    return "TODO: Replace with actual implementation"
