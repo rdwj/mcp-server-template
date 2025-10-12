@@ -112,6 +112,34 @@ def load_prompts(mcp: FastMCP, prompts_dir: Path) -> int:
     return added
 
 
+def load_middleware(mcp: FastMCP, middleware_dir: Path) -> int:
+    """Load middleware modules using package import names consistently.
+
+    Middleware functions wrap tool executions to add cross-cutting concerns.
+    They are defined using @mcp.middleware() decorators.
+    """
+    added = 0
+    if not middleware_dir.exists():
+        return 0
+    for py_file in middleware_dir.glob("*.py"):
+        if py_file.name == "__init__.py":
+            continue
+        module_name_pkg = f"middleware.{py_file.stem}"
+        module_name_synth = f"middleware__{py_file.stem}"
+        try:
+            importlib.import_module(module_name_pkg)
+            log.info(f"Loaded middleware module: {module_name_pkg}")
+            added += 1
+        except Exception:
+            try:
+                _load_module_from_path(module_name_synth, py_file)
+                log.info(f"Loaded middleware module (synthetic): {module_name_synth}")
+                added += 1
+            except Exception:
+                log.exception(f"Failed to load middleware: {py_file}")
+    return added
+
+
 # ---------------------------
 # Hot‑reload (dev only)
 # ---------------------------
@@ -134,6 +162,7 @@ class _ReloadHandler(FileSystemEventHandler):  # type: ignore[misc]
             tools_dir = self.base / "tools"
             resources_dir = self.base / "resources"
             prompts_dir = self.base / "prompts"
+            middleware_dir = self.base / "middleware"
 
             for module_name in list(_iter_modules(tools_dir, "tools")):
                 if module_name in sys.modules:
@@ -148,6 +177,12 @@ class _ReloadHandler(FileSystemEventHandler):  # type: ignore[misc]
                     importlib.import_module(module_name)
 
             for module_name in list(_iter_modules(prompts_dir, "prompts")):
+                if module_name in sys.modules:
+                    importlib.reload(sys.modules[module_name])
+                else:
+                    importlib.import_module(module_name)
+
+            for module_name in list(_iter_modules(middleware_dir, "middleware")):
                 if module_name in sys.modules:
                     importlib.reload(sys.modules[module_name])
                 else:
@@ -169,14 +204,15 @@ def start_hot_reload(mcp: FastMCP, base_dir: Path):
     tools_dir = base_dir / "tools"
     resources_dir = base_dir / "resources"
     prompts_dir = base_dir / "prompts"
+    middleware_dir = base_dir / "middleware"
 
-    for d in (tools_dir, resources_dir, prompts_dir):
+    for d in (tools_dir, resources_dir, prompts_dir, middleware_dir):
         if d.exists():
             obs.schedule(handler, str(d), recursive=False)
 
     obs.daemon = True
     obs.start()
-    log.info(f"Hot‑reload watching: {tools_dir}, {resources_dir}, {prompts_dir}")
+    log.info(f"Hot‑reload watching: {tools_dir}, {resources_dir}, {prompts_dir}, {middleware_dir}")
     return obs
 
 
@@ -185,6 +221,7 @@ def load_all(mcp: FastMCP, src_base: Path) -> dict:
         "tools": load_tools(mcp, src_base / "tools"),
         "resources": load_resources(mcp, src_base / "resources"),
         "prompts": load_prompts(mcp, src_base / "prompts"),
+        "middleware": load_middleware(mcp, src_base / "middleware"),
     }
     log.info(f"Loaded: {counts}")
     return counts
