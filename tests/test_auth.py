@@ -34,7 +34,11 @@ def _jwt_env(monkeypatch):
 
 
 def _make_token(payload: dict) -> str:
-    return jwt.encode(payload, os.getenv("MCP_AUTH_JWT_SECRET", "test-secret"), algorithm=os.getenv("MCP_AUTH_JWT_ALG", "HS256"))
+    return jwt.encode(
+        payload,
+        os.getenv("MCP_AUTH_JWT_SECRET", "test-secret"),
+        algorithm=os.getenv("MCP_AUTH_JWT_ALG", "HS256"),
+    )
 
 
 @pytest.mark.asyncio
@@ -70,5 +74,3 @@ async def test_requires_scopes_missing_context():
 
     result = await secured()
     assert result.get("error") == "missing context for auth"
-
-

@@ -32,7 +32,9 @@ def test_load_tools_resources_prompts(tmp_path: Path):
     (prompts_dir / "p1.yaml").write_text(
         "name: demo\nprompt: |\n  <output_schema>{output_schema}</output_schema>\n  Hello {name}\n"
     )
-    (prompts_dir / "p1.json").write_text('{"type":"object","properties":{"ok":{"type":"boolean"}},"required":["ok"]}')
+    (prompts_dir / "p1.json").write_text(
+        '{"type":"object","properties":{"ok":{"type":"boolean"}},"required":["ok"]}'
+    )
 
     # Ensure import path includes temp src
     sys.path.insert(0, str(src_base))

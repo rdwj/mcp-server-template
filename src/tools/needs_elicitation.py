@@ -3,9 +3,11 @@ from dataclasses import dataclass
 from fastmcp import Context
 from core.app import mcp
 
+
 @dataclass
 class Confirm:
     ok: bool
+
 
 @mcp.tool(
     annotations={
@@ -17,8 +19,7 @@ class Confirm:
 async def delete_all(ctx: Context = None) -> str:
     """Dangerous example: asks user to confirm via elicitation before proceeding."""
     result = await ctx.elicit(
-        message="DELETE ALL DATA in workspace?",
-        response_type=Confirm
+        message="DELETE ALL DATA in workspace?", response_type=Confirm
     )
 
     if result.action == "accept":
@@ -27,6 +28,7 @@ async def delete_all(ctx: Context = None) -> str:
         return "User declined to provide confirmation"
     else:  # cancel
         return "Operation cancelled"
+
 
 @mcp.tool(
     annotations={
@@ -42,8 +44,7 @@ async def get_weather(
     if not location:
         # Ask user for the location
         result = await ctx.elicit(
-            message="Which city would you like weather for?",
-            response_type=str
+            message="Which city would you like weather for?", response_type=str
         )
 
         if result.action == "accept":

@@ -2,6 +2,7 @@ from typing import Annotated
 from fastmcp import Context
 from core.app import mcp
 
+
 @mcp.tool(
     annotations={
         "readOnlyHint": True,
@@ -21,6 +22,6 @@ async def write_release_notes(
         messages=prompt,  # Simple string format
         temperature=0.3,
         max_tokens=400,
-        system_prompt=system
+        system_prompt=system,
     )
     return str(result)

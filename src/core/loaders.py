@@ -113,30 +113,67 @@ def load_prompts(mcp: FastMCP, prompts_dir: Path) -> int:
 
 
 def load_middleware(mcp: FastMCP, middleware_dir: Path) -> int:
-    """Load middleware modules using package import names consistently.
+    """Load middleware classes and register them with FastMCP.
 
-    Middleware functions wrap tool executions to add cross-cutting concerns.
-    They are defined using @mcp.middleware() decorators.
+    Middleware classes inherit from fastmcp.server.middleware.Middleware
+    and override specific hook methods (on_call_tool, on_request, etc.).
+
+    This function:
+    1. Imports middleware modules from the middleware directory
+    2. Finds Middleware subclasses in each module
+    3. Instantiates and registers them with mcp.add_middleware()
     """
     added = 0
     if not middleware_dir.exists():
         return 0
+
+    # Import the Middleware base class for isinstance checking
+    try:
+        from fastmcp.server.middleware import Middleware as FastMCPMiddleware
+    except ImportError:
+        log.warning("fastmcp.server.middleware not available; middleware disabled")
+        return 0
+
     for py_file in middleware_dir.glob("*.py"):
         if py_file.name == "__init__.py":
             continue
+
         module_name_pkg = f"middleware.{py_file.stem}"
         module_name_synth = f"middleware__{py_file.stem}"
+
         try:
-            importlib.import_module(module_name_pkg)
-            log.info(f"Loaded middleware module: {module_name_pkg}")
-            added += 1
-        except Exception:
+            # Import the module
             try:
-                _load_module_from_path(module_name_synth, py_file)
-                log.info(f"Loaded middleware module (synthetic): {module_name_synth}")
-                added += 1
-            except Exception:
-                log.exception(f"Failed to load middleware: {py_file}")
+                module = importlib.import_module(module_name_pkg)
+            except ImportError:
+                module = importlib.util.module_from_spec(
+                    importlib.util.spec_from_file_location(module_name_synth, py_file)
+                )
+                sys.modules[module_name_synth] = module
+                module.__spec__.loader.exec_module(module)
+
+            # Find and instantiate Middleware classes
+            for name in dir(module):
+                obj = getattr(module, name)
+                # Check if it's a class that inherits from Middleware (but not Middleware itself)
+                if (
+                    isinstance(obj, type)
+                    and issubclass(obj, FastMCPMiddleware)
+                    and obj is not FastMCPMiddleware
+                ):
+                    try:
+                        middleware_instance = obj()
+                        mcp.add_middleware(middleware_instance)
+                        log.info(
+                            f"Registered middleware: {name} from {module_name_pkg}"
+                        )
+                        added += 1
+                    except Exception:
+                        log.exception(f"Failed to instantiate middleware {name}")
+
+        except Exception:
+            log.exception(f"Failed to load middleware from: {py_file}")
+
     return added
 
 
@@ -212,7 +249,9 @@ def start_hot_reload(mcp: FastMCP, base_dir: Path):
 
     obs.daemon = True
     obs.start()
-    log.info(f"Hot‑reload watching: {tools_dir}, {resources_dir}, {prompts_dir}, {middleware_dir}")
+    log.info(
+        f"Hot‑reload watching: {tools_dir}, {resources_dir}, {prompts_dir}, {middleware_dir}"
+    )
     return obs
 
 

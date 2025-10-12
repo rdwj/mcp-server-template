@@ -5,7 +5,9 @@ from pathlib import Path
 from core.loaders import load_single_prompt_with_schema
 
 
-def preview_prompt(prompt_name: str, strict: bool = False, _prompts_dir: Path = None, **kwargs):
+def preview_prompt(
+    prompt_name: str, strict: bool = False, _prompts_dir: Path = None, **kwargs
+):
     # prompts/ sits at project root alongside src/
     prompts_dir = _prompts_dir or Path(__file__).resolve().parents[1].parent / "prompts"
     yaml_file = prompts_dir / f"{prompt_name}.yaml"
@@ -23,11 +25,15 @@ def preview_prompt(prompt_name: str, strict: bool = False, _prompts_dir: Path = 
 
     # Strict mode: error if placeholder existed but schema file missing
     if strict and had_output_schema_placeholder and not has_schema_file:
-        raise RuntimeError(f"{yaml_file.name} uses {{output_schema}} but missing schema file: {schema_file.name}")
+        raise RuntimeError(
+            f"{yaml_file.name} uses {{output_schema}} but missing schema file: {schema_file.name}"
+        )
 
     # Non-strict: warn if placeholder still present after injection
     if "{output_schema}" in text:
-        print(f"[WARN] {yaml_file.name} still contains '{{output_schema}}' — no schema injected or placeholder misspelled.")
+        print(
+            f"[WARN] {yaml_file.name} still contains '{{output_schema}}' — no schema injected or placeholder misspelled."
+        )
 
     # Replace any provided {placeholders}
     for key, value in kwargs.items():
@@ -50,10 +56,23 @@ def _parse_kv_list(kv_list):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Preview a prompt with placeholders filled.")
-    parser.add_argument("prompt_name", help="Name of the prompt YAML file without extension")
-    parser.add_argument("--vars", nargs="*", default=[], help="Placeholder replacements in key=value format")
-    parser.add_argument("--strict", action="store_true", help="Fail if {output_schema} is used but schema file is missing")
+    parser = argparse.ArgumentParser(
+        description="Preview a prompt with placeholders filled."
+    )
+    parser.add_argument(
+        "prompt_name", help="Name of the prompt YAML file without extension"
+    )
+    parser.add_argument(
+        "--vars",
+        nargs="*",
+        default=[],
+        help="Placeholder replacements in key=value format",
+    )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Fail if {output_schema} is used but schema file is missing",
+    )
     args = parser.parse_args()
 
     replacements = _parse_kv_list(args.vars)

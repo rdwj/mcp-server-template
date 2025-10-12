@@ -8,8 +8,11 @@ from .logging import configure_logging, get_logger
 
 log = get_logger("bootstrap")
 
+
 class UnifiedMCPServer:
-    def __init__(self, name: Optional[str] = None, src_root: Optional[Path] = None) -> None:
+    def __init__(
+        self, name: Optional[str] = None, src_root: Optional[Path] = None
+    ) -> None:
         load_dotenv(override=True)
         configure_logging(os.getenv("MCP_LOG_LEVEL", "INFO"))
         self.name = name or os.getenv("MCP_SERVER_NAME", "fastmcp-unified")

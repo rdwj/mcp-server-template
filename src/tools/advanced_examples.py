@@ -27,8 +27,12 @@ from core.app import mcp
     }
 )
 async def process_data(
-    count: Annotated[int, Field(description="Number of items to process", ge=1, le=100)],
-    name: Annotated[str, Field(description="Name for the operation", min_length=1, max_length=50)],
+    count: Annotated[
+        int, Field(description="Number of items to process", ge=1, le=100)
+    ],
+    name: Annotated[
+        str, Field(description="Name for the operation", min_length=1, max_length=50)
+    ],
     ctx: Context = None,
 ) -> str:
     """Process data with validation constraints.
@@ -70,7 +74,7 @@ async def validate_input(
         raise ToolError("Data exceeds maximum length of 1000 characters")
 
     # Check for potentially problematic characters
-    if any(char in data for char in ['<', '>', '&']):
+    if any(char in data for char in ["<", ">", "&"]):
         raise ToolError("Data contains potentially unsafe characters: <, >, or &")
 
     await ctx.info("Input validation successful")
@@ -81,6 +85,7 @@ async def validate_input(
 @dataclass
 class AnalysisResult:
     """Structured result for text analysis."""
+
     word_count: int
     character_count: int
     sentence_count: int
@@ -118,10 +123,10 @@ async def analyze_text(
     words = text.split()
 
     # Split into sentences (simple period split)
-    sentences = [s.strip() for s in text.split('.') if s.strip()]
+    sentences = [s.strip() for s in text.split(".") if s.strip()]
 
     # Calculate unique words
-    unique_words = len(set(word.lower().strip('.,!?;:') for word in words))
+    unique_words = len(set(word.lower().strip(".,!?;:") for word in words))
 
     # Calculate average word length
     avg_length = sum(len(w) for w in words) / len(words) if words else 0.0
@@ -131,10 +136,12 @@ async def analyze_text(
         character_count=len(text),
         sentence_count=len(sentences),
         avg_word_length=round(avg_length, 2),
-        unique_words=unique_words
+        unique_words=unique_words,
     )
 
-    await ctx.info(f"Analysis complete: {result.word_count} words, {result.sentence_count} sentences")
+    await ctx.info(
+        f"Analysis complete: {result.word_count} words, {result.sentence_count} sentences"
+    )
 
     return result
 
@@ -218,9 +225,9 @@ async def calculate_statistics(
     # Calculate median
     n = len(sorted_nums)
     if n % 2 == 0:
-        median = (sorted_nums[n//2 - 1] + sorted_nums[n//2]) / 2
+        median = (sorted_nums[n // 2 - 1] + sorted_nums[n // 2]) / 2
     else:
-        median = sorted_nums[n//2]
+        median = sorted_nums[n // 2]
 
     stats = {
         "count": len(numbers),
@@ -232,7 +239,9 @@ async def calculate_statistics(
         "range": round(max(numbers) - min(numbers), 2),
     }
 
-    await ctx.info(f"Statistics calculated: mean={stats['mean']}, median={stats['median']}")
+    await ctx.info(
+        f"Statistics calculated: mean={stats['mean']}, median={stats['median']}"
+    )
 
     return stats
 
@@ -249,7 +258,9 @@ async def format_text(
     text: Annotated[str, "Text to format"],
     uppercase: Annotated[bool, "Convert to uppercase"] = False,
     trim: Annotated[bool, "Trim whitespace"] = True,
-    max_length: Annotated[int | None, Field(description="Maximum length (None for unlimited)", ge=1)] = None,
+    max_length: Annotated[
+        int | None, Field(description="Maximum length (None for unlimited)", ge=1)
+    ] = None,
     ctx: Context = None,
 ) -> str:
     """Format text with various options.
@@ -260,7 +271,9 @@ async def format_text(
     - Optional (None-able) parameters
     - Conditional processing based on parameters
     """
-    await ctx.info(f"Formatting text with options: uppercase={uppercase}, trim={trim}, max_length={max_length}")
+    await ctx.info(
+        f"Formatting text with options: uppercase={uppercase}, trim={trim}, max_length={max_length}"
+    )
 
     result = text
 

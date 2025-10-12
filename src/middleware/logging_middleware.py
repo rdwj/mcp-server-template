@@ -3,22 +3,19 @@
 This middleware logs all tool calls with execution time and status.
 """
 
-from typing import Any, Callable
 import time
-from fastmcp import Context
-from core.app import mcp
+from typing import Any
+
+from fastmcp.server.middleware import CallNext, Middleware, MiddlewareContext
+import mcp.types as mt
+from fastmcp.tools.tool import ToolResult
+
 from core.logging import get_logger
 
 log = get_logger("middleware.logging")
 
 
-@mcp.middleware()
-async def logging_middleware(
-    ctx: Context,
-    next_handler: Callable,
-    *args: Any,
-    **kwargs: Any
-) -> Any:
+class LoggingMiddleware(Middleware):
     """Log tool invocations with timing information.
 
     This middleware captures:
@@ -27,37 +24,46 @@ async def logging_middleware(
     - Execution duration
     - Success/failure status
 
-    Args:
-        ctx: FastMCP context with request information
-        next_handler: Next handler in the middleware chain
-        *args: Positional arguments passed to the tool
-        **kwargs: Keyword arguments passed to the tool
-
-    Returns:
-        Result from the tool execution
-
-    Raises:
-        Any exception raised by the tool
+    Example usage:
+        from src.middleware.logging_middleware import LoggingMiddleware
+        mcp.add_middleware(LoggingMiddleware())
     """
-    # Extract tool name from context
-    tool_name = getattr(ctx.request, "tool_name", "unknown") if hasattr(ctx, "request") else "unknown"
 
-    # Log request start
-    start_time = time.time()
-    log.info(f"Tool invoked: {tool_name}")
-    log.debug(f"Tool args: {args}, kwargs: {kwargs}")
+    async def on_call_tool(
+        self,
+        context: MiddlewareContext[mt.CallToolRequestParams],
+        call_next: CallNext[mt.CallToolRequestParams, ToolResult],
+    ) -> ToolResult:
+        """Log tool invocation before and after execution.
 
-    try:
-        # Execute the tool
-        result = await next_handler(*args, **kwargs)
+        Args:
+            context: Middleware context with request parameters
+            call_next: Next handler in the middleware chain
 
-        # Log successful completion
-        duration = time.time() - start_time
-        log.info(f"Tool completed: {tool_name} (duration: {duration:.3f}s)")
+        Returns:
+            Tool execution result
+        """
+        tool_name = context.message.name
 
-        return result
-    except Exception as e:
-        # Log failure
-        duration = time.time() - start_time
-        log.error(f"Tool failed: {tool_name} (duration: {duration:.3f}s) - {type(e).__name__}: {e}")
-        raise
+        # Log request start
+        start_time = time.time()
+        log.info(f"Tool invoked: {tool_name}")
+        log.debug(f"Tool arguments: {context.message.arguments}")
+
+        try:
+            # Execute the tool
+            result = await call_next(context)
+
+            # Log successful completion
+            duration = time.time() - start_time
+            log.info(f"Tool completed: {tool_name} (duration: {duration:.3f}s)")
+
+            return result
+        except Exception as e:
+            # Log failure
+            duration = time.time() - start_time
+            log.error(
+                f"Tool failed: {tool_name} (duration: {duration:.3f}s) - "
+                f"{type(e).__name__}: {e}"
+            )
+            raise

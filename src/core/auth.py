@@ -6,6 +6,7 @@ from .logging import get_logger
 
 log = get_logger("auth")
 
+
 @dataclass
 class AllowedOrigins:
     patterns: list[str]
@@ -18,7 +19,12 @@ class AllowedOrigins:
 
 
 class BearerVerifier:
-    def __init__(self, alg: str | None = None, secret: str | None = None, public_key: str | None = None) -> None:
+    def __init__(
+        self,
+        alg: str | None = None,
+        secret: str | None = None,
+        public_key: str | None = None,
+    ) -> None:
         self.alg = alg
         self.secret = secret
         self.public_key = public_key
@@ -62,19 +68,32 @@ def claims_from_ctx(ctx: Context) -> dict | None:  # best‑effort; HTTP transpo
 
 
 def requires_scopes(*scopes: str):
-    required = set(scopes) if scopes else set((os.getenv("MCP_REQUIRED_SCOPES", "").split(",")))
+    required = (
+        set(scopes)
+        if scopes
+        else set((os.getenv("MCP_REQUIRED_SCOPES", "").split(",")))
+    )
     required = {s.strip() for s in required if s.strip()}
 
     def deco(fn):
         async def wrapper(*args, **kwargs):
-            ctx = kwargs.get("ctx") or next((a for a in args if isinstance(a, Context)), None)
+            ctx = kwargs.get("ctx") or next(
+                (a for a in args if isinstance(a, Context)), None
+            )
             if not ctx:
                 return {"error": "missing context for auth"}
             claims = claims_from_ctx(ctx) or {}
-            token_scopes = set((claims.get("scope") or "").split()) | set(claims.get("scopes", []))
+            token_scopes = set((claims.get("scope") or "").split()) | set(
+                claims.get("scopes", [])
+            )
             if not required.issubset(token_scopes):
                 await ctx.error("Forbidden: missing required scopes")
-                return {"error": "forbidden", "missing": sorted(required - token_scopes)}
+                return {
+                    "error": "forbidden",
+                    "missing": sorted(required - token_scopes),
+                }
             return await fn(*args, **kwargs)
+
         return wrapper
+
     return deco

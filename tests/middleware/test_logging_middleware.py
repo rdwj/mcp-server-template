@@ -2,63 +2,63 @@
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock
-from src.middleware.logging_middleware import logging_middleware
+
+import mcp.types as mt
+from fastmcp.server.middleware import MiddlewareContext
+from fastmcp.tools.tool import ToolResult
+
+from src.middleware.logging_middleware import LoggingMiddleware
 
 
 @pytest.mark.asyncio
 async def test_logging_middleware_success():
     """Test middleware logs successful tool execution."""
+    # Create middleware instance
+    middleware = LoggingMiddleware()
+
     # Create mock context
-    ctx = MagicMock()
-    ctx.request.tool_name = "test_tool"
+    context = MiddlewareContext(
+        message=mt.CallToolRequestParams(name="test_tool", arguments={"arg": "value"}),
+        method="tools/call",
+    )
 
     # Create mock next handler that returns a result
-    next_handler = AsyncMock(return_value="success_result")
+    mock_result = ToolResult(content=[{"type": "text", "text": "success"}])
+    call_next = AsyncMock(return_value=mock_result)
 
     # Execute middleware
-    result = await logging_middleware(ctx, next_handler, "arg1", kwarg1="value1")
+    result = await middleware.on_call_tool(context, call_next)
 
     # Verify result is returned
-    assert result == "success_result"
+    assert result == mock_result
 
-    # Verify next_handler was called
-    next_handler.assert_called_once_with("arg1", kwarg1="value1")
+    # Verify call_next was called
+    call_next.assert_called_once_with(context)
 
 
 @pytest.mark.asyncio
 async def test_logging_middleware_error():
     """Test middleware logs errors and re-raises them."""
+    # Create middleware instance
+    middleware = LoggingMiddleware()
+
     # Create mock context
-    ctx = MagicMock()
-    ctx.request.tool_name = "failing_tool"
+    context = MiddlewareContext(
+        message=mt.CallToolRequestParams(
+            name="failing_tool", arguments={"arg": "value"}
+        ),
+        method="tools/call",
+    )
 
     # Create mock next handler that raises an error
-    next_handler = AsyncMock(side_effect=ValueError("Test error"))
+    call_next = AsyncMock(side_effect=ValueError("Test error"))
 
     # Execute middleware and expect error to be raised
     with pytest.raises(ValueError, match="Test error"):
-        await logging_middleware(ctx, next_handler)
+        await middleware.on_call_tool(context, call_next)
 
-    # Verify next_handler was called
-    next_handler.assert_called_once()
-
-
-@pytest.mark.asyncio
-async def test_logging_middleware_no_context():
-    """Test middleware handles missing context gracefully."""
-    # Create minimal mock context without request attribute
-    ctx = MagicMock()
-    del ctx.request
-
-    # Create mock next handler
-    next_handler = AsyncMock(return_value="result")
-
-    # Execute middleware - should not raise error
-    result = await logging_middleware(ctx, next_handler)
-
-    # Verify result is returned
-    assert result == "result"
-    next_handler.assert_called_once()
+    # Verify call_next was called
+    call_next.assert_called_once()
 
 
 @pytest.mark.asyncio
@@ -66,17 +66,22 @@ async def test_logging_middleware_timing():
     """Test middleware measures execution time."""
     import asyncio
 
+    # Create middleware instance
+    middleware = LoggingMiddleware()
+
     # Create mock context
-    ctx = MagicMock()
-    ctx.request.tool_name = "slow_tool"
+    context = MiddlewareContext(
+        message=mt.CallToolRequestParams(name="slow_tool", arguments={}),
+        method="tools/call",
+    )
 
     # Create mock next handler that takes time
-    async def slow_handler(*args, **kwargs):
+    async def slow_handler(ctx):
         await asyncio.sleep(0.01)  # 10ms delay
-        return "result"
+        return ToolResult(content=[{"type": "text", "text": "result"}])
 
     # Execute middleware
-    result = await logging_middleware(ctx, slow_handler)
+    result = await middleware.on_call_tool(context, slow_handler)
 
     # Verify result is returned
-    assert result == "result"
+    assert result is not None

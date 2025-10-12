@@ -10,6 +10,7 @@ logger = get_logger("server")
 # This must happen after mcp is created but before the server runs
 try:
     import prompts  # noqa: F401
+
     logger.debug("Prompts module imported for decorator registration")
 except ImportError:
     logger.warning("Failed to import prompts module - prompts may not be available")

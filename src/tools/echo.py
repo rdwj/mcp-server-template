@@ -2,6 +2,7 @@ from typing import Annotated
 from core.app import mcp
 from fastmcp import Context
 
+
 @mcp.tool(
     annotations={
         "readOnlyHint": True,

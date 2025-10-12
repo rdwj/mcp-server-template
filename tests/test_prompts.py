@@ -137,7 +137,8 @@ def test_load_prompts_from_directory(tmp_path: Path):
     (prompts_dir / "__init__.py").write_text("")
 
     # Create a simple test prompt module
-    (prompts_dir / "test_prompt.py").write_text("""
+    (prompts_dir / "test_prompt.py").write_text(
+        """
 from typing import Annotated
 from pydantic import Field
 from fastmcp import FastMCP
@@ -148,7 +149,8 @@ mcp = FastMCP("test")
 @mcp.prompt()
 def test_prompt(text: Annotated[str, Field(description="Test text")]) -> str:
     return f"Testing: {text}"
-""")
+"""
+    )
 
     # Load prompts from the test directory
     added = load_prompts(mcp, prompts_dir)

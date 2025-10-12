@@ -23,7 +23,9 @@ def translate_text(
     ],
     source_language: Annotated[
         str | None,
-        Field(description="Source language (auto-detect if not specified)", default=None),
+        Field(
+            description="Source language (auto-detect if not specified)", default=None
+        ),
     ] = None,
 ) -> str:
     """

@@ -4,27 +4,25 @@ This file provides a pattern for implementing authentication middleware.
 Uncomment and customize based on your authentication requirements.
 """
 
-from typing import Any, Callable
-from fastmcp import Context
+from typing import Any
+
+from fastmcp.server.middleware import CallNext, Middleware, MiddlewareContext
+import mcp.types as mt
+from fastmcp.tools.tool import ToolResult
 from fastmcp.exceptions import ToolError
-from core.app import mcp
+
 from core.logging import get_logger
 
 log = get_logger("middleware.auth")
 
 
-# Uncomment to enable authentication middleware
-# @mcp.middleware()
-async def auth_middleware(
-    ctx: Context,
-    next_handler: Callable,
-    *args: Any,
-    **kwargs: Any
-) -> Any:
+class AuthMiddleware(Middleware):
     """Verify authentication before tool execution.
 
     This is a commented example showing how to implement authentication
-    middleware. Uncomment the @mcp.middleware() decorator above to activate.
+    middleware. To activate:
+    1. Uncomment the implementation below
+    2. Add `mcp.add_middleware(AuthMiddleware())` to your loaders
 
     Example authentication checks:
     - Verify JWT tokens from request headers
@@ -32,63 +30,74 @@ async def auth_middleware(
     - Validate API keys
     - Rate limiting per user
 
-    Args:
-        ctx: FastMCP context with request information
-        next_handler: Next handler in the middleware chain
-        *args: Positional arguments passed to the tool
-        **kwargs: Keyword arguments passed to the tool
-
-    Returns:
-        Result from the tool execution
-
-    Raises:
-        ToolError: If authentication fails
+    Example usage:
+        from src.middleware.auth_middleware import AuthMiddleware
+        mcp.add_middleware(AuthMiddleware())
     """
-    # Example: Check for authorization header
-    # auth_header = getattr(ctx.request, "headers", {}).get("Authorization")
-    # if not auth_header:
-    #     raise ToolError("Authentication required: Missing Authorization header")
 
-    # Example: Verify JWT token
-    # try:
-    #     from core.auth import verify_jwt
-    #     token = auth_header.replace("Bearer ", "")
-    #     claims = verify_jwt(token)
-    #     ctx.user = claims  # Attach user info to context
-    # except Exception as e:
-    #     raise ToolError(f"Authentication failed: {e}")
+    async def on_call_tool(
+        self,
+        context: MiddlewareContext[mt.CallToolRequestParams],
+        call_next: CallNext[mt.CallToolRequestParams, ToolResult],
+    ) -> ToolResult:
+        """Verify authentication before tool execution.
 
-    # Example: Check required scopes
-    # tool_name = getattr(ctx.request, "tool_name", "unknown")
-    # required_scopes = get_required_scopes(tool_name)
-    # user_scopes = claims.get("scopes", [])
-    # if not all(scope in user_scopes for scope in required_scopes):
-    #     raise ToolError(f"Insufficient permissions for {tool_name}")
+        Args:
+            context: Middleware context with request parameters
+            call_next: Next handler in the middleware chain
 
-    log.debug("Auth middleware (commented) - passing through")
+        Returns:
+            Tool execution result
 
-    # Execute the tool
-    return await next_handler(*args, **kwargs)
+        Raises:
+            ToolError: If authentication fails
+        """
+        tool_name = context.message.name
 
+        # Example: Check for authorization header
+        # Note: FastMCP middleware doesn't have direct access to HTTP headers
+        # You would need to implement this through FastMCP context or custom auth
+        # auth_header = getattr(context.fastmcp_context, "headers", {}).get("Authorization")
+        # if not auth_header:
+        #     raise ToolError("Authentication required: Missing Authorization header")
 
-# Example helper function for scope checking
-def get_required_scopes(tool_name: str) -> list[str]:
-    """Get required scopes for a tool.
+        # Example: Verify JWT token
+        # try:
+        #     from core.auth import verify_jwt
+        #     token = auth_header.replace("Bearer ", "")
+        #     claims = verify_jwt(token)
+        #     # Attach user info to context if needed
+        # except Exception as e:
+        #     raise ToolError(f"Authentication failed: {e}")
 
-    This is an example function showing how you might map tools
-    to required authentication scopes.
+        # Example: Check required scopes
+        # required_scopes = self._get_required_scopes(tool_name)
+        # user_scopes = claims.get("scopes", [])
+        # if not all(scope in user_scopes for scope in required_scopes):
+        #     raise ToolError(f"Insufficient permissions for {tool_name}")
 
-    Args:
-        tool_name: Name of the tool being invoked
+        log.debug(f"Auth middleware (commented) - passing through for {tool_name}")
 
-    Returns:
-        List of required scope strings
-    """
-    # Example scope mapping
-    scope_map = {
-        "fetch_user": ["read:users"],
-        "update_user": ["write:users"],
-        "delete_user": ["delete:users", "admin"],
-        "admin_action": ["admin"],
-    }
-    return scope_map.get(tool_name, [])
+        # Execute the tool
+        return await call_next(context)
+
+    def _get_required_scopes(self, tool_name: str) -> list[str]:
+        """Get required scopes for a tool.
+
+        This is an example function showing how you might map tools
+        to required authentication scopes.
+
+        Args:
+            tool_name: Name of the tool being invoked
+
+        Returns:
+            List of required scope strings
+        """
+        # Example scope mapping
+        scope_map = {
+            "fetch_user": ["read:users"],
+            "update_user": ["write:users"],
+            "delete_user": ["delete:users", "admin"],
+            "admin_action": ["admin"],
+        }
+        return scope_map.get(tool_name, [])
