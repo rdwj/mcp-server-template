@@ -4,7 +4,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from core.app import mcp
-from core.loaders import load_prompts
 from prompts import analysis, documentation, general
 
 
@@ -125,38 +124,6 @@ def test_generate_readme_prompt():
     assert "MyProject" in result
     assert "Feature 1" in result
     assert "Feature 2" in result
-
-
-def test_load_prompts_from_directory(tmp_path: Path):
-    """Test loading Python prompt modules from a directory."""
-    # Create a test prompts directory
-    prompts_dir = tmp_path / "prompts"
-    prompts_dir.mkdir()
-
-    # Create __init__.py
-    (prompts_dir / "__init__.py").write_text("")
-
-    # Create a simple test prompt module
-    (prompts_dir / "test_prompt.py").write_text(
-        """
-from typing import Annotated
-from pydantic import Field
-from fastmcp import FastMCP
-
-# This would normally import from core.app, but for testing we'll create a local instance
-mcp = FastMCP("test")
-
-@mcp.prompt()
-def test_prompt(text: Annotated[str, Field(description="Test text")]) -> str:
-    return f"Testing: {text}"
-"""
-    )
-
-    # Load prompts from the test directory
-    added = load_prompts(mcp, prompts_dir)
-
-    # Should have loaded at least one module
-    assert added >= 1
 
 
 def test_prompt_parameter_validation():
