@@ -4,22 +4,25 @@ This project implements a FastMCP 2.x server with local STDIO and OpenShift HTTP
 
 - Core framework: FastMCP 2.x
 - Transports: STDIO (local), HTTP (OpenShift)
-- Dynamic loading: tools, resources, prompts
+- Dynamic loading: tools, resources, prompts, middleware
 - Auth: optional JWT verification and scope checks
+- Generator system: Jinja2 templates for scaffolding components
 - OpenShift: ImageStream, BuildConfigs (Git or Binary), Deployment, Service, Route, HPA
 
 ## Components
 
 - `src/core/app.py`: Instantiates `FastMCP` and shared logger; imports prompts module for decorator registration
 - `src/core/server.py`: Bootstraps logging, loads components, and runs server (STDIO or HTTP)
-- `src/core/loaders.py`: Loads tools/resources/prompts from filesystem; hot-reload in dev
+- `src/core/loaders.py`: Loads tools/resources/prompts/middleware from filesystem; hot-reload in dev
 - `src/core/auth.py`: Optional JWT verification and scope decorator
 - `src/tools/*.py`: Example tools including sampling and elicitation
 - `src/tools/advanced_examples.py`: Comprehensive examples of FastMCP best practices
 - `src/resources/*.py`: Example resource with explicit URI
 - `src/prompts/*.py`: Python-based prompts using FastMCP decorators (@mcp.prompt())
+- `src/middleware/*.py`: Middleware for cross-cutting concerns (logging, auth, rate limiting, etc.)
 - `src/tools/preview_prompt.py`: CLI to preview a prompt with injected schema and variable replacements
 - `src/ops/deploy_cli.py`: Interactive OpenShift deployer using `oc`
+- `.fips-agents-cli/generators/`: Jinja2 templates for generating new components
 
 ### Tools Best Practices (FastMCP 2.11.0+)
 
@@ -64,8 +67,11 @@ flowchart TD
   E --> F[load_tools]
   E --> G[load_resources]
   E --> H[load_prompts]
-  H --> I[Import Python modules with @mcp.prompt decorators]
-  I --> J[Decorators auto-register prompts with FastMCP]
+  E --> I[load_middleware]
+  H --> J[Import Python modules with @mcp.prompt decorators]
+  J --> K[Decorators auto-register prompts with FastMCP]
+  I --> L[Import middleware modules with @mcp.middleware decorators]
+  L --> M[Decorators auto-register middleware with FastMCP]
 ```
 
 ## OpenShift Build/Deploy
@@ -85,6 +91,8 @@ flowchart TD
 - Use FastMCP 2.x decorator APIs: `@mcp.prompt()` for Python-based prompts with type safety
 - Python prompts in `src/prompts/` use Pydantic Field annotations for parameter descriptions
 - Resource registration requires explicit URI: `@mcp.resource("resource://...")`
+- Middleware uses `@mcp.middleware()` decorator for self-registration
+- Generator templates use Jinja2 and live in project (not CLI) for customization
 - OpenShift-native builds: prefer Binary Build for local projects without Git; Git Build also supported
 - Images pulled from internal registry `image-registry.openshift-image-registry.svc:5000/<ns>/<name>:latest`
 
@@ -110,6 +118,55 @@ def summarize(
 ) -> str:
     return f"Summarize the following text:\n<document>{document}</document>"
 ```
+
+## Middleware System
+
+Middleware wraps tool execution to add cross-cutting concerns like logging, authentication, rate limiting, etc.
+
+- Location: `src/middleware/` directory
+- Pattern: Use `@mcp.middleware()` decorator on async functions
+- Signature: `async def middleware_name(ctx: Context, next_handler: Callable, *args, **kwargs) -> Any`
+- Hot-reload: Changes to middleware modules are automatically reloaded in dev mode
+- Self-registration: Middleware registers automatically when module is imported
+
+Example:
+```python
+from typing import Any, Callable
+from fastmcp import Context
+from core.app import mcp
+
+@mcp.middleware()
+async def logging_middleware(
+    ctx: Context,
+    next_handler: Callable,
+    *args: Any,
+    **kwargs: Any
+) -> Any:
+    tool_name = ctx.request.tool_name
+    print(f"Executing: {tool_name}")
+    result = await next_handler(*args, **kwargs)
+    print(f"Completed: {tool_name}")
+    return result
+```
+
+## Generator System
+
+The generator system scaffolds new components using Jinja2 templates stored in the project:
+
+- Location: `.fips-agents-cli/generators/` directory
+- Component types: tool, resource, prompt, middleware
+- Templates: `component.py.j2` (implementation), `test.py.j2` (tests)
+- Customization: Templates are per-project and can be customized
+- CLI: `fips-agents generate <type> <name> [options]`
+
+Key features:
+- Generates both implementation and test files
+- Includes TODO comments and examples
+- Supports async/sync, authentication, context parameters
+- Follows FastMCP best practices
+- Templates use Jinja2 syntax for flexibility
+
+See [GENERATOR_PLAN.md](GENERATOR_PLAN.md) for comprehensive generator documentation.
 
 ## Configuration
 

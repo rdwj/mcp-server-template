@@ -6,6 +6,8 @@ A production-ready MCP (Model Context Protocol) server template with dynamic too
 
 - 🔧 **Dynamic tool/resource loading** via decorators
 - 📝 **Python-based prompts** with type safety and FastMCP decorators
+- 🔀 **Middleware support** for cross-cutting concerns
+- 🏗️ **Generator system** for scaffolding new components
 - 🚀 **One-command OpenShift deployment**
 - 🔄 **Hot-reload** for local development
 - 🧪 **Local STDIO** and **OpenShift HTTP** transports
@@ -42,8 +44,10 @@ make deploy PROJECT=my-project
 │   ├── core/           # Core server components
 │   ├── tools/          # Tool implementations
 │   ├── resources/      # Resource implementations
-│   └── prompts/        # Python-based prompt definitions
+│   ├── prompts/        # Python-based prompt definitions
+│   └── middleware/     # Middleware implementations
 ├── tests/              # Test suite
+├── .fips-agents-cli/   # Generator templates
 ├── Containerfile       # Container definition
 ├── openshift.yaml      # OpenShift manifests
 ├── deploy.sh           # Deployment script
@@ -94,6 +98,11 @@ async def my_tool(
 
 See [TOOLS_GUIDE.md](docs/TOOLS_GUIDE.md) for comprehensive examples and patterns.
 
+**Or use the generator:**
+```bash
+fips-agents generate tool my-tool --async --with-context
+```
+
 ### Adding Resources
 
 Create a file in `src/resources/`:
@@ -104,6 +113,11 @@ from src.core.app import mcp
 @mcp.resource("resource://my-resource")
 async def get_my_resource() -> str:
     return "Resource content"
+```
+
+**Or use the generator:**
+```bash
+fips-agents generate resource my-resource --uri "resource://my-resource"
 ```
 
 ### Creating Prompts
@@ -133,6 +147,42 @@ See `src/prompts/analysis.py`, `documentation.py`, and `general.py` for examples
 - Prompts with optional parameters and defaults
 - Prompts with Literal types for enum-like values
 - Structured output with JSON schemas
+
+**Or use the generator:**
+```bash
+fips-agents generate prompt my-prompt --with-schema
+```
+
+### Adding Middleware
+
+Create a file in `src/middleware/`:
+
+```python
+from typing import Any, Callable
+from fastmcp import Context
+from core.app import mcp
+
+@mcp.middleware()
+async def my_middleware(
+    ctx: Context,
+    next_handler: Callable,
+    *args: Any,
+    **kwargs: Any
+) -> Any:
+    # Pre-execution logic
+    result = await next_handler(*args, **kwargs)
+    # Post-execution logic
+    return result
+```
+
+Middleware wraps tool execution to add cross-cutting concerns like logging, authentication, rate limiting, caching, etc.
+
+See `src/middleware/logging_middleware.py` for a working example and `src/middleware/auth_middleware.py` for a commented authentication pattern.
+
+**Or use the generator:**
+```bash
+fips-agents generate middleware my-middleware --async
+```
 
 ## Testing
 
@@ -195,10 +245,12 @@ The server uses FastMCP 2.x with:
 - Dynamic component loading at startup
 - Hot-reload in development mode
 - Python decorator-based prompts with type safety
-- Automatic prompt registration via `@mcp.prompt()` decorators
+- Automatic component registration via decorators (`@mcp.tool()`, `@mcp.resource()`, `@mcp.prompt()`, `@mcp.middleware()`)
+- Middleware for cross-cutting concerns
+- Generator system with Jinja2 templates for scaffolding
 - Support for both STDIO (local) and HTTP (OpenShift) transports
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture information.
+See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed architecture information and [GENERATOR_PLAN.md](GENERATOR_PLAN.md) for generator system documentation.
 
 ## Requirements
 
