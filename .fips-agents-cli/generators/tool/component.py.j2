@@ -11,9 +11,9 @@ from core.app import mcp
 
 @mcp.tool(
     annotations={
-        "readOnlyHint": {{ read_only|default(True)|lower }},
-        "idempotentHint": {{ idempotent|default(True)|lower }},
-        "openWorldHint": {{ open_world|default(False)|lower }},
+        "readOnlyHint": {{ read_only|default(True) }},
+        "idempotentHint": {{ idempotent|default(True) }},
+        "openWorldHint": {{ open_world|default(False) }},
     }
 )
 {% if with_auth %}@requires_scopes({{ required_scopes|default('["read:data"]')|tojson }})
