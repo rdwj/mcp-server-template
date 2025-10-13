@@ -1,7 +1,12 @@
 """Tests for {{ component_name }} tool."""
 
 import pytest
-{% if async %}from unittest.mock import AsyncMock{% endif %}
+{% if async %}
+from unittest.mock import AsyncMock
+{% endif %}
+{% if with_context and not async %}
+from unittest.mock import MagicMock
+{% endif %}
 from src.tools.{{ component_name }} import {{ component_name }}
 
 
