@@ -1,10 +1,18 @@
 """{{ description }}"""
 
 from typing import Annotated
-{% if params|length > 0 %}from pydantic import Field{% endif %}
-{% if async and with_context %}from fastmcp import Context{% endif %}
-{% if with_context and not async %}from fastmcp import Context{% endif %}
-{% if with_auth %}from core.auth import requires_scopes{% endif %}
+{% if params|length > 0 %}
+from pydantic import Field
+{% endif %}
+{% if async and with_context %}
+from fastmcp import Context
+{% endif %}
+{% if with_context and not async %}
+from fastmcp import Context
+{% endif %}
+{% if with_auth %}
+from core.auth import requires_scopes
+{% endif %}
 from fastmcp.exceptions import ToolError
 from core.app import mcp
 

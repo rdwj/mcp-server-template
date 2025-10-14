@@ -1,7 +1,9 @@
 """{{ description }}"""
 
 from typing import Any, Callable
-{% if async %}from fastmcp import Context{% endif %}
+{% if async %}
+from fastmcp import Context
+{% endif %}
 from fastmcp.exceptions import ToolError
 from core.app import mcp
 from core.logging import get_logger

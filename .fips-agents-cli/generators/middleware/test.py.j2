@@ -39,7 +39,9 @@ async def test_{{ component_name }}_error():
 
     # Execute middleware and expect error to be raised
     with pytest.raises(ValueError, match="Test error"):
-        {% if async %}await {% endif %}{{ component_name }}(ctx, next_handler)
+{% if async %}        await {{ component_name }}(ctx, next_handler)
+{% else %}        {{ component_name }}(ctx, next_handler)
+{% endif %}
 
     # Verify next_handler was called
     next_handler.assert_called_once()
