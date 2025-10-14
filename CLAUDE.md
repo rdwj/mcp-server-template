@@ -104,3 +104,161 @@ Clients then pass:
 ```
 
 FastMCP automatically converts the JSON string to a Python dict.
+
+## Prompt Generation Options (FastMCP 2.x)
+
+### Return Types
+
+Prompts can return different types based on use case:
+
+**`str` (default)**: Simple string prompt
+```python
+@mcp.prompt
+def simple_prompt(query: str = Field(description="User query")) -> str:
+    return f"Please answer: {query}"
+```
+
+**`PromptMessage`**: Structured message with role
+```python
+from fastmcp.prompts.prompt import PromptMessage, TextContent
+
+@mcp.prompt
+def structured_prompt(query: str = Field(description="User query")) -> PromptMessage:
+    content = f"Please answer: {query}"
+    return PromptMessage(
+        role="user",
+        content=TextContent(type="text", text=content)
+    )
+```
+
+**`list[PromptMessage]`**: Multi-turn conversation
+```python
+from fastmcp.prompts.prompt import Message
+
+@mcp.prompt
+def conversation(topic: str = Field(description="Discussion topic")) -> list[PromptMessage]:
+    return [
+        Message(f"Let's discuss {topic}"),
+        Message("That's interesting!", role="assistant"),
+        Message("What do you think about...?")
+    ]
+```
+
+### Async Prompts
+
+Use async prompts when performing I/O operations:
+
+```python
+import aiohttp
+
+@mcp.prompt
+async def fetch_prompt(url: str = Field(description="Data source URL")) -> str:
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            data = await response.text()
+    return f"Analyze this data: {data}"
+```
+
+Generate with: `fips-agents generate prompt fetch_data --async`
+
+### Context Access
+
+Access MCP context for request metadata and features:
+
+```python
+from fastmcp import Context
+
+@mcp.prompt
+def tracked_prompt(
+    query: str = Field(description="User query"),
+    ctx: Context,
+) -> str:
+    return f"""Query: {query}
+Request ID: {ctx.request_id}
+
+Please provide a detailed response."""
+```
+
+Generate with: `fips-agents generate prompt my_prompt --with-context`
+
+### Decorator Arguments
+
+Customize prompt metadata:
+
+```python
+@mcp.prompt(
+    name="custom_name",
+    title="Human Readable Title",
+    description="Custom description",
+    tags={"category", "type"},
+    enabled=True,
+    meta={"version": "1.0", "author": "team"}
+)
+def my_prompt(data: str = Field(description="Input data")) -> str:
+    return f"Process: {data}"
+```
+
+Generate with:
+```bash
+fips-agents generate prompt my_prompt \
+    --prompt-name "custom_name" \
+    --title "Human Readable Title" \
+    --tags "category,type" \
+    --meta '{"version": "1.0"}'
+```
+
+### CLI Examples
+
+**Basic Prompt**:
+```bash
+fips-agents generate prompt summarize_text \
+    --description "Summarize text content"
+```
+
+**Async Prompt with Context**:
+```bash
+fips-agents generate prompt fetch_and_analyze \
+    --async \
+    --with-context \
+    --return-type PromptMessage \
+    --description "Fetch and analyze data asynchronously"
+```
+
+**Prompt with Parameters**:
+```bash
+# Create params.json
+cat > params.json << 'EOF'
+[
+  {
+    "name": "data",
+    "type": "dict[str, str]",
+    "description": "Data to analyze",
+    "required": true
+  },
+  {
+    "name": "analysis_type",
+    "type": "str",
+    "description": "Type of analysis",
+    "default": "\"summary\"",
+    "required": false
+  }
+]
+EOF
+
+fips-agents generate prompt analyze_data \
+    --params params.json \
+    --with-schema \
+    --return-type "list[PromptMessage]"
+```
+
+**Advanced Prompt with Metadata**:
+```bash
+fips-agents generate prompt report_generator \
+    --async \
+    --with-context \
+    --prompt-name "generate_report" \
+    --title "Report Generator" \
+    --tags "reporting,analysis,business" \
+    --meta '{"version": "2.0", "author": "data-team"}' \
+    --description "Generate comprehensive business reports"
+```

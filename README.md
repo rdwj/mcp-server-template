@@ -122,36 +122,104 @@ fips-agents generate resource my-resource --uri "resource://my-resource"
 
 ### Creating Prompts
 
-Create a Python file in `src/prompts/`:
+Create Python files in `src/prompts/`. Prompts support multiple return types, async operations, context access, and metadata:
 
+**Basic String Prompt:**
 ```python
-from typing import Annotated
 from pydantic import Field
-from ..core.app import mcp
+from src.core.app import mcp
 
-@mcp.prompt()
+@mcp.prompt
 def my_prompt(
-    variable_name: Annotated[
-        str,
-        Field(description="Description of the parameter"),
-    ],
+    query: str = Field(description="User query"),
 ) -> str:
     """Purpose of this prompt"""
-    return f"Your prompt text with {variable_name}"
+    return f"Please answer: {query}"
 ```
 
-Prompts return formatted strings that are used as prompts for LLM interactions.
+**Async Prompt with Context:**
+```python
+from pydantic import Field
+from fastmcp import Context
+from src.core.app import mcp
 
-See `src/prompts/analysis.py`, `documentation.py`, and `general.py` for examples of:
-- Basic prompts with required parameters
-- Prompts with optional parameters and defaults
-- Prompts with Literal types for enum-like values
-- Structured output with JSON schemas
+@mcp.prompt
+async def fetch_prompt(
+    url: str = Field(description="Data source URL"),
+    ctx: Context,
+) -> str:
+    """Fetch data and create prompt"""
+    # Perform async operations
+    return f"Analyze data from {url}"
+```
 
-**Or use the generator:**
+**Structured Message Prompt:**
+```python
+from pydantic import Field
+from fastmcp.prompts.prompt import PromptMessage, TextContent
+from src.core.app import mcp
+
+@mcp.prompt
+def structured_prompt(
+    task: str = Field(description="Task description"),
+) -> PromptMessage:
+    """Create structured message"""
+    return PromptMessage(
+        role="user",
+        content=TextContent(type="text", text=f"Task: {task}")
+    )
+```
+
+**Advanced with Metadata:**
+```python
+from pydantic import Field
+from src.core.app import mcp
+
+@mcp.prompt(
+    name="custom_name",
+    title="Human Readable Title",
+    description="Custom description",
+    tags={"analysis", "reporting"},
+    meta={"version": "1.0", "author": "team"}
+)
+def advanced_prompt(
+    data: dict[str, str] = Field(description="Data to process"),
+) -> str:
+    """Advanced prompt with full metadata"""
+    return f"Analyze: {data}"
+```
+
+**Generator Examples:**
 ```bash
-fips-agents generate prompt my-prompt --with-schema
+# Basic prompt
+fips-agents generate prompt summarize_text \
+    --description "Summarize text content"
+
+# Async with Context
+fips-agents generate prompt fetch_and_analyze \
+    --async --with-context \
+    --return-type PromptMessage
+
+# With parameters file
+fips-agents generate prompt analyze_data \
+    --params params.json --with-schema
+
+# Advanced with metadata
+fips-agents generate prompt report_generator \
+    --async --with-context \
+    --prompt-name "generate_report" \
+    --title "Report Generator" \
+    --tags "reporting,analysis" \
+    --meta '{"version": "2.0"}'
 ```
+
+**Return Types:**
+- `str` - Simple string prompt (default)
+- `PromptMessage` - Structured message with role
+- `list[PromptMessage]` - Multi-turn conversation
+- `PromptResult` - Full prompt result object
+
+See [CLAUDE.md](CLAUDE.md) for comprehensive prompt generation documentation and `src/prompts/` for working examples.
 
 ### Adding Middleware
 

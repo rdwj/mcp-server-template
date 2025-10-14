@@ -120,6 +120,13 @@ Generated code with `dict[str, str]` parameter:
 - ✓ Removed Annotated[] wrapper
 - ✓ Correct type hint computation
 
+### 3. Updated Test Suite
+**File**: `tests/test_generators.py`
+- Updated `test_load_params_valid_types` to use modern syntax
+- Changed `"Optional[str]"` → `"str | None"`
+- Added `"dict[str, str]"` and `"dict[str, Any]"` to test cases
+- All 104 tests pass ✓
+
 ## Success Criteria Met
 
 - ✅ Generated prompts will expose arguments via MCP protocol
