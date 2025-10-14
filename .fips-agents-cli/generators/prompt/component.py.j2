@@ -1,17 +1,16 @@
 """{{ description }}"""
 
-from typing import Annotated{% if params|selectattr('optional')|list|length > 0 %}, Literal{% endif %}
 from pydantic import Field
 from core.app import mcp
 
 
-@mcp.prompt()
+@mcp.prompt
 def {{ component_name }}(
-{% if params|length > 0 %}{% for param in params %}    {{ param.name }}: Annotated[
-        {{ param.type }}{% if param.optional %} | None{% endif %},
-        Field(description="{{ param.description }}"{% if param.default is defined %}, default={{ param.default }}{% endif %}),
-    ]{% if param.optional %} = {{ param.default }}{% endif %},
-{% endfor %}{% endif %}) -> str:
+{% for param in params %}    {{ param.name }}: {{ param.type_hint }} = Field(
+{% if param.default is defined %}        default={{ param.default }},
+{% endif %}        description="{{ param.description }}"
+    ),
+{% endfor %}) -> str:
     """{{ description }}
 
     Args:
@@ -20,25 +19,21 @@ def {{ component_name }}(
     Returns:
         {{ return_description|default('Formatted prompt string for LLM interaction') }}
     """
-{% if params|length > 0 %}{% for param in params %}{% if param.optional %}    {% if param.type == 'str' %}{{ param.name }}_info = f"{{ param.name|title }}: {{ '{' }}{{ param.name }}{{ '}' }}\n" if {{ param.name }} else ""
-{% endif %}{% endif %}{% endfor %}{% endif %}
     return f"""{{ prompt_instruction|default('Analyze and process the following:') }}
 
-{% if params|length > 0 %}{% for param in params %}{% if not param.optional %}<{{ param.name }}>
+{% for param in params %}{% if not param.get('optional', False) %}<{{ param.name }}>
 {{ '{' }}{{ param.name }}{{ '}' }}
 </{{ param.name }}>
 
-{% endif %}{% endfor %}{% endif %}{% if with_schema %}Provide:
-1. {{ schema_item_1|default('Main analysis or result') }}
-2. {{ schema_item_2|default('Supporting details') }}
-3. {{ schema_item_3|default('Recommendations or next steps') }}
-
+{% endif %}{% endfor %}
+{%- if with_schema %}
 Return as JSON:
-{{
-  "result": "{{ result_field_description|default('Main result') }}",
-  "details": "{{ details_field_description|default('Additional details') }}",
-  "{{ additional_field|default('metadata') }}": {{ '{' }}"field": "value"{{ '}' }}
-}}{% else %}# TODO: Add prompt instructions
-# Provide clear, specific instructions for the LLM
-# Use structured format for better results
-{% endif %}"""
+{{ '{' }}
+  "result": "{{ result_field|default('Main result') }}",
+  "details": "{{ details_field|default('Additional details') }}"
+{{ '}' }}
+{%- else %}
+# TODO: Add specific prompt instructions
+# Provide clear, structured guidance for the LLM
+# Use JSON schema when structured output is needed
+{%- endif %}"""

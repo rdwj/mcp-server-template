@@ -1,29 +1,26 @@
 """
 Data analysis prompts for text processing and classification.
 
-These prompts demonstrate FastMCP decorator-based prompt patterns with:
-- Type annotations for parameters
-- Pydantic Field for parameter descriptions
+These prompts demonstrate FastMCP 2.x decorator-based prompt patterns with:
+- Simplified Field() pattern for parameter validation
+- Type hints with parameterized types (dict[str, str])
 - Docstrings for documentation
 - Optional parameters with defaults
+- FastMCP 2.9.0+ compatibility
 """
 
-from typing import Annotated
 from pydantic import Field
 
 # Import the shared mcp instance from core
 from core.app import mcp
 
 
-@mcp.prompt()
+@mcp.prompt
 def summarize(
-    document: Annotated[
-        str,
-        Field(
-            description="The document text to summarize",
-            min_length=1,
-        ),
-    ],
+    document: str = Field(
+        description="The document text to summarize",
+        min_length=1,
+    ),
 ) -> str:
     """
     Summarize a document with clear section markers.
@@ -48,15 +45,12 @@ Return your response as JSON with this structure:
 }}"""
 
 
-@mcp.prompt()
+@mcp.prompt
 def classify(
-    text: Annotated[
-        str,
-        Field(
-            description="The text to classify into categories",
-            min_length=1,
-        ),
-    ],
+    text: str = Field(
+        description="The text to classify into categories",
+        min_length=1,
+    ),
 ) -> str:
     """
     Classify text into categories with confidence scores.
@@ -80,15 +74,12 @@ Return JSON matching this schema:
 }}"""
 
 
-@mcp.prompt()
+@mcp.prompt
 def analyze_sentiment(
-    text: Annotated[
-        str,
-        Field(
-            description="The text to analyze for sentiment",
-            min_length=1,
-        ),
-    ],
+    text: str = Field(
+        description="The text to analyze for sentiment",
+        min_length=1,
+    ),
 ) -> str:
     """
     Analyze the sentiment of given text (positive, negative, neutral).
@@ -117,22 +108,19 @@ Return as JSON:
 }}"""
 
 
-@mcp.prompt()
+@mcp.prompt
 def extract_entities(
-    text: Annotated[
-        str,
-        Field(
-            description="The text to extract named entities from",
-            min_length=1,
+    text: str = Field(
+        description="The text to extract named entities from",
+        min_length=1,
+    ),
+    entity_types: list[str] | None = Field(
+        default=None,
+        description=(
+            "Specific entity types to extract "
+            "(e.g., ['PERSON', 'ORGANIZATION', 'LOCATION'])"
         ),
-    ],
-    entity_types: Annotated[
-        list[str] | None,
-        Field(
-            description="Specific entity types to extract (e.g., ['PERSON', 'ORGANIZATION', 'LOCATION'])",
-            default=None,
-        ),
-    ] = None,
+    ),
 ) -> str:
     """
     Extract named entities from text with optional filtering by entity type.
@@ -162,3 +150,42 @@ Return JSON with entities grouped by type:
   "DATE": ["2024-01-01"],
   "OTHER": ["Any other relevant entities"]
 }}"""
+
+
+@mcp.prompt
+def analyze_data(
+    data: dict[str, str] = Field(
+        description=(
+            "Data to analyze as a dictionary with string keys and values. "
+            "Pass as JSON string."
+        )
+    ),
+    analysis_type: str = Field(
+        default="summary",
+        description="Type of analysis: 'summary', 'detailed', or 'statistical'",
+    ),
+) -> str:
+    """
+    Analyze structured data and provide insights.
+
+    This example demonstrates FastMCP 2.9.0+ dict parameter handling.
+    Clients pass dict as JSON string, FastMCP converts automatically.
+
+    Args:
+        data: Dictionary of data to analyze
+        analysis_type: Type of analysis to perform
+
+    Returns:
+        Formatted prompt for data analysis
+    """
+    return f"""Analyze the following data:
+
+{data}
+
+Perform a {analysis_type} analysis including:
+1. Key patterns and trends
+2. Notable outliers or anomalies
+3. Statistical summaries (if applicable)
+4. Actionable insights
+
+Return results as structured JSON."""
