@@ -61,15 +61,28 @@ def load_tools(mcp: FastMCP, tools_dir: Path) -> int:
 
 
 def load_resources(mcp: FastMCP, resources_dir: Path) -> int:
-    """Load resource modules using package import names consistently."""
+    """Load resource modules using package import names consistently.
+
+    Supports subdirectories: resources/country-profiles/japan.py becomes
+    resources.country-profiles.japan (with hyphens converted to underscores for Python).
+    """
     added = 0
     if not resources_dir.exists():
         return 0
-    for py_file in resources_dir.glob("*.py"):
+
+    # Use rglob to find all .py files recursively
+    for py_file in resources_dir.rglob("*.py"):
         if py_file.name == "__init__.py":
             continue
-        module_name_pkg = f"resources.{py_file.stem}"
-        module_name_synth = f"resources__{py_file.stem}"
+
+        # Calculate relative path from resources_dir and build module name
+        rel_path = py_file.relative_to(resources_dir)
+        parts = list(rel_path.parts[:-1]) + [rel_path.stem]  # Remove .py and split path
+        module_suffix = ".".join(parts)
+
+        module_name_pkg = f"resources.{module_suffix}"
+        module_name_synth = f"resources__{module_suffix.replace('.', '__')}"
+
         try:
             importlib.import_module(module_name_pkg)
             log.info(f"Loaded resource module: {module_name_pkg}")
@@ -243,9 +256,14 @@ def start_hot_reload(mcp: FastMCP, base_dir: Path):
     prompts_dir = base_dir / "prompts"
     middleware_dir = base_dir / "middleware"
 
-    for d in (tools_dir, resources_dir, prompts_dir, middleware_dir):
+    # Watch resources recursively to support subdirectories
+    for d in (tools_dir, prompts_dir, middleware_dir):
         if d.exists():
             obs.schedule(handler, str(d), recursive=False)
+
+    # Watch resources directory recursively
+    if resources_dir.exists():
+        obs.schedule(handler, str(resources_dir), recursive=True)
 
     obs.daemon = True
     obs.start()
