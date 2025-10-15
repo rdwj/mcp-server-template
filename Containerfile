@@ -8,7 +8,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY src/ ./src/
-COPY prompts/ ./prompts/
 
 # Set environment for HTTP transport
 ENV MCP_TRANSPORT=http \
