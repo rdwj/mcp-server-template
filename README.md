@@ -5,11 +5,13 @@ A production-ready MCP (Model Context Protocol) server template with dynamic too
 ## Features
 
 - 🔧 **Dynamic tool/resource loading** via decorators
+- 📁 **Resource subdirectories** for organizing related resources
 - 📝 **Python-based prompts** with type safety and FastMCP decorators
 - 🔀 **Middleware support** for cross-cutting concerns
-- 🏗️ **Generator system** for scaffolding new components
+- 🏗️ **Generator system** for scaffolding new components with non-interactive CLI
+- 🔄 **Selective updates** - patch infrastructure without losing custom code
 - 🚀 **One-command OpenShift deployment**
-- 🔄 **Hot-reload** for local development
+- 🔥 **Hot-reload** for local development
 - 🧪 **Local STDIO** and **OpenShift HTTP** transports
 - 🔐 **JWT authentication** (optional) with scope-based authorization
 - ✅ **Full test suite** with pytest
@@ -43,11 +45,15 @@ make deploy PROJECT=my-project
 ├── src/
 │   ├── core/           # Core server components
 │   ├── tools/          # Tool implementations
-│   ├── resources/      # Resource implementations
+│   ├── resources/      # Resource implementations (supports subdirectories)
+│   │   ├── country_profiles/   # Example: organized by category
+│   │   ├── checklists/
+│   │   └── emergency_protocols/
 │   ├── prompts/        # Python-based prompt definitions
 │   └── middleware/     # Middleware implementations
 ├── tests/              # Test suite
 ├── .fips-agents-cli/   # Generator templates
+├── .template-info      # Template version tracking (for updates)
 ├── Containerfile       # Container definition
 ├── openshift.yaml      # OpenShift manifests
 ├── deploy.sh           # Deployment script
@@ -98,15 +104,47 @@ async def my_tool(
 
 See [TOOLS_GUIDE.md](docs/TOOLS_GUIDE.md) for comprehensive examples and patterns.
 
-**Or use the generator:**
+**Generator examples:**
 ```bash
-fips-agents generate tool my-tool --async --with-context
+# Simple tool
+fips-agents generate tool my_tool \
+    --description "Tool description" \
+    --async
+
+# Tool with context
+fips-agents generate tool search_documents \
+    --description "Search through documents" \
+    --async \
+    --with-context
+
+# Tool with authentication
+fips-agents generate tool protected_operation \
+    --description "Protected operation" \
+    --async \
+    --with-auth
+
+# Tool with parameters from JSON file
+fips-agents generate tool complex_tool \
+    --description "Complex tool with multiple params" \
+    --params params.json \
+    --with-context
+
+# Advanced tool with all options
+fips-agents generate tool advanced_tool \
+    --description "Advanced tool example" \
+    --async \
+    --with-context \
+    --with-auth \
+    --return-type "dict" \
+    --read-only \
+    --idempotent
 ```
 
 ### Adding Resources
 
-Create a file in `src/resources/`:
+Resources can be organized in subdirectories for better structure. Create files in `src/resources/` or any subdirectory:
 
+**Simple resource:**
 ```python
 from src.core.app import mcp
 
@@ -115,10 +153,74 @@ async def get_my_resource() -> str:
     return "Resource content"
 ```
 
-**Or use the generator:**
-```bash
-fips-agents generate resource my-resource --uri "resource://my-resource"
+**JSON resource with metadata:**
+```python
+from src.core.app import mcp
+
+@mcp.resource(
+    "data://config",
+    mime_type="application/json",
+    description="Application configuration data"
+)
+async def get_config() -> dict:
+    return {"version": "1.0", "features": ["tools", "resources"]}
 ```
+
+**Resource template (parameterized):**
+```python
+from src.core.app import mcp
+
+@mcp.resource("weather://{city}/current")
+async def get_weather(city: str) -> dict:
+    """Weather information for a specific city."""
+    return {"city": city, "temperature": 22, "condition": "Sunny"}
+```
+
+**Organizing resources in subdirectories:**
+```
+src/resources/
+├── country_profiles/
+│   ├── __init__.py
+│   ├── japan.py          # country-profiles://JP
+│   └── france.py         # country-profiles://FR
+├── checklists/
+│   ├── __init__.py
+│   └── travel.py         # travel-checklists://first-trip
+└── emergency_protocols/
+    ├── __init__.py
+    └── passport.py       # emergency-protocols://passport-lost
+```
+
+**Generator examples:**
+```bash
+# Simple resource
+fips-agents generate resource my_resource \
+    --description "My resource description" \
+    --uri "resource://my-resource" \
+    --mime-type "text/plain"
+
+# JSON resource
+fips-agents generate resource config_data \
+    --description "Application configuration" \
+    --uri "data://config" \
+    --mime-type "application/json"
+
+# Resource in subdirectory (creates country_profiles/japan.py)
+fips-agents generate resource country-profiles/japan \
+    --description "Japan country profile" \
+    --uri "country-profiles://JP" \
+    --mime-type "application/json"
+
+# Resource template with async and context
+fips-agents generate resource weather \
+    --async \
+    --with-context \
+    --description "Weather data by city" \
+    --uri "weather://{city}/current" \
+    --mime-type "application/json"
+```
+
+Subdirectories are automatically discovered by the loader - no manual registration needed!
 
 ### Creating Prompts
 
@@ -247,9 +349,17 @@ Middleware wraps tool execution to add cross-cutting concerns like logging, auth
 
 See `src/middleware/logging_middleware.py` for a working example and `src/middleware/auth_middleware.py` for a commented authentication pattern.
 
-**Or use the generator:**
+**Generator examples:**
 ```bash
-fips-agents generate middleware my-middleware --async
+# Async middleware
+fips-agents generate middleware logging_middleware \
+    --description "Request logging middleware" \
+    --async
+
+# Sync middleware
+fips-agents generate middleware rate_limiter \
+    --description "Rate limiting middleware" \
+    --sync
 ```
 
 ## Testing
@@ -278,6 +388,89 @@ npx @modelcontextprotocol/inspector https://<route-url>/mcp/
 ```
 
 See [TESTING.md](TESTING.md) for detailed testing instructions.
+
+## Keeping Projects Updated
+
+This template is actively maintained with improvements to infrastructure, generators, and documentation. You can selectively update your project from template changes without losing your custom code.
+
+### Check for Updates
+
+```bash
+# See what's changed since project creation
+fips-agents patch check
+```
+
+This shows available updates organized by category (generators, core, docs, build).
+
+### Update Specific Categories
+
+```bash
+# Update generator templates (safe - your code is untouched)
+fips-agents patch generators
+
+# Update core infrastructure (shows diffs, asks for approval)
+fips-agents patch core
+
+# Update documentation and examples (safe)
+fips-agents patch docs
+
+# Update build and deployment files (shows diffs, asks for approval)
+fips-agents patch build
+
+# Preview changes without applying (dry run)
+fips-agents patch core --dry-run
+```
+
+### Update Everything
+
+```bash
+# Interactively update all categories
+fips-agents patch all
+
+# Skip confirmation prompts (use with caution)
+fips-agents patch all --skip-confirmation
+```
+
+### What Gets Updated
+
+**Automatically updated (no confirmation):**
+- `.fips-agents-cli/generators/` - Code generator templates
+- `docs/` - Documentation files
+- Example files in `src/*/examples/`
+
+**Asks before updating (shows diffs):**
+- `src/core/loaders.py` - Component discovery system
+- `src/core/server.py` - Server bootstrap code
+- `src/*/__ init__.py` - Package initialization files
+- `Makefile`, `Containerfile`, `openshift.yaml` - Build files
+
+**Never updated (your code is protected):**
+- `src/tools/*.py` - Your tool implementations
+- `src/resources/*.py` - Your resource implementations
+- `src/prompts/*.py` - Your prompt definitions
+- `src/middleware/*.py` - Your middleware implementations
+- `tests/` - Your test files
+- `README.md`, `pyproject.toml`, `.env` - Project configuration
+- `src/core/app.py`, `src/core/auth.py`, `src/core/logging.py` - User-customizable core files
+
+### Example: Adding New Template Capabilities
+
+Imagine the template adds new authentication capabilities in a future update:
+
+```bash
+# Check what's new
+fips-agents patch check
+
+# Pull in updated generators so you can generate auth-enabled tools
+fips-agents patch generators
+
+# Review and apply core infrastructure updates
+fips-agents patch core  # Shows diffs, you decide what to apply
+
+# Your existing tools, resources, and prompts remain untouched!
+```
+
+The `.template-info` file tracks which template version your project was created from, enabling smart updates.
 
 ## Environment Variables
 
