@@ -4,6 +4,9 @@ import pytest
 from unittest.mock import {% if async %}AsyncMock, {% endif %}MagicMock
 from src.middleware.{{ component_name }} import {{ component_name }}
 
+# Access the underlying function for testing (FastMCP decorator pattern)
+{{ component_name }}_fn = {{ component_name }}.fn
+
 
 {% if async %}@pytest.mark.asyncio
 async def test_{{ component_name }}_success():
@@ -17,7 +20,7 @@ async def test_{{ component_name }}_success():
     next_handler = {% if async %}AsyncMock(return_value="success_result"){% else %}MagicMock(return_value="success_result"){% endif %}
 
     # Execute middleware
-    result = {% if async %}await {% endif %}{{ component_name }}(ctx, next_handler, "arg1", kwarg1="value1")
+    result = {% if async %}await {% endif %}{{ component_name }}_fn(ctx, next_handler, "arg1", kwarg1="value1")
 
     # Verify result is returned
     assert result == "success_result"
@@ -39,8 +42,8 @@ async def test_{{ component_name }}_error():
 
     # Execute middleware and expect error to be raised
     with pytest.raises(ValueError, match="Test error"):
-{% if async %}        await {{ component_name }}(ctx, next_handler)
-{% else %}        {{ component_name }}(ctx, next_handler)
+{% if async %}        await {{ component_name }}_fn(ctx, next_handler)
+{% else %}        {{ component_name }}_fn(ctx, next_handler)
 {% endif %}
 
     # Verify next_handler was called
@@ -59,7 +62,7 @@ async def test_{{ component_name }}_no_request_context():
     next_handler = {% if async %}AsyncMock(return_value="result"){% else %}MagicMock(return_value="result"){% endif %}
 
     # Execute middleware - should not raise error
-    result = {% if async %}await {% endif %}{{ component_name }}(ctx, next_handler)
+    result = {% if async %}await {% endif %}{{ component_name }}_fn(ctx, next_handler)
 
     # Verify result is returned
     assert result == "result"
@@ -77,7 +80,7 @@ async def test_{{ component_name }}_with_arguments():
     next_handler = {% if async %}AsyncMock(return_value="result"){% else %}MagicMock(return_value="result"){% endif %}
 
     # Execute with various arguments
-    result = {% if async %}await {% endif %}{{ component_name }}(
+    result = {% if async %}await {% endif %}{{ component_name }}_fn(
         ctx,
         next_handler,
         "pos_arg1",
