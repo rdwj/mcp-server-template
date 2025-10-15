@@ -1,14 +1,31 @@
 """
-Prompts module for FastMCP server.
+Prompts package for the MCP server.
 
-This module exports all available prompts using Python decorators for type safety
-and better IDE support. All prompt functions are automatically registered with
-FastMCP through the @mcp.prompt() decorator.
+All prompt modules in this directory are automatically discovered and imported.
+FastMCP decorators (@mcp.prompt) register prompts when modules are imported.
+
+To add a new prompt:
+1. Create a new .py file in this directory
+2. Define your prompt function with @mcp.prompt() decorator
+3. That's it! No need to update this __init__.py file
+
+To remove a prompt:
+1. Simply delete the .py file
+2. No cleanup needed in __init__.py
 """
 
-# Import all prompt modules to trigger decorator registration
-from . import analysis  # noqa: F401
-from . import documentation  # noqa: F401
-from . import general  # noqa: F401
+import importlib
+import pkgutil
+from pathlib import Path
 
-__all__ = ["analysis", "documentation", "general"]
+# Auto-discover and import all prompt modules
+_current_dir = Path(__file__).parent
+_discovered_modules = []
+
+for _, module_name, _ in pkgutil.iter_modules([str(_current_dir)]):
+    if not module_name.startswith("_"):  # Skip __init__ and private modules
+        importlib.import_module(f".{module_name}", package=__name__)
+        _discovered_modules.append(module_name)
+
+# Expose discovered modules for introspection
+__all__ = _discovered_modules

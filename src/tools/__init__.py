@@ -1,37 +1,31 @@
 """
 Tools package for the MCP server.
 
-This package contains all tool implementations organized by functionality:
-- echo.py: Simple echo example
-- needs_sampling.py: Tools that use LLM sampling
-- needs_elicitation.py: Tools that elicit user input
-- advanced_examples.py: Comprehensive examples of FastMCP best practices
+All tool modules in this directory are automatically discovered and imported.
+FastMCP decorators (@mcp.tool) register tools when modules are imported.
+
+To add a new tool:
+1. Create a new .py file in this directory
+2. Define your tool function with @mcp.tool() decorator
+3. That's it! No need to update this __init__.py file
+
+To remove a tool:
+1. Simply delete the .py file
+2. No cleanup needed in __init__.py
 """
 
-# Import all tools to make them available when the package is imported
-from .echo import echo
-from .needs_sampling import write_release_notes
-from .needs_elicitation import delete_all, get_weather
-from .advanced_examples import (
-    process_data,
-    validate_input,
-    analyze_text,
-    configure_system,
-    calculate_statistics,
-    format_text,
-)
+import importlib
+import pkgutil
+from pathlib import Path
 
-__all__ = [
-    # Basic tools
-    "echo",
-    "write_release_notes",
-    "delete_all",
-    "get_weather",
-    # Advanced examples
-    "process_data",
-    "validate_input",
-    "analyze_text",
-    "configure_system",
-    "calculate_statistics",
-    "format_text",
-]
+# Auto-discover and import all tool modules
+_current_dir = Path(__file__).parent
+_discovered_modules = []
+
+for _, module_name, _ in pkgutil.iter_modules([str(_current_dir)]):
+    if not module_name.startswith("_"):  # Skip __init__ and private modules
+        importlib.import_module(f".{module_name}", package=__name__)
+        _discovered_modules.append(module_name)
+
+# Expose discovered modules for introspection
+__all__ = _discovered_modules
