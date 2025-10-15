@@ -11,7 +11,11 @@ from src.resources.{{ component_name }} import {{ component_name }}
 async def test_{{ component_name }}_returns_content():
 {% else %}def test_{{ component_name }}_returns_content():
 {% endif %}    """Test {{ component_name }} returns content."""
-    result = {% if async %}await {% endif %}{{ component_name }}_fn()
+{% if params|length > 0 %}    # TODO: Provide actual parameter values
+{% for param in params %}    {{ param.name }} = "test_{{ param.name }}"  # Replace with actual test value
+{% endfor %}    result = {% if async %}await {% endif %}{{ component_name }}_fn({% for param in params %}{{ param.name }}{% if not loop.last %}, {% endif %}{% endfor %})
+{% else %}    result = {% if async %}await {% endif %}{{ component_name }}_fn()
+{% endif %}
 
     # TODO: Add specific assertions
     assert result is not None
@@ -28,7 +32,11 @@ async def test_{{ component_name }}_returns_content():
 async def test_{{ component_name }}_content_structure():
 {% else %}def test_{{ component_name }}_content_structure():
 {% endif %}    """Test {{ component_name }} content structure."""
-    result = {% if async %}await {% endif %}{{ component_name }}_fn()
+{% if params|length > 0 %}    # TODO: Provide actual parameter values
+{% for param in params %}    {{ param.name }} = "test_{{ param.name }}"  # Replace with actual test value
+{% endfor %}    result = {% if async %}await {% endif %}{{ component_name }}_fn({% for param in params %}{{ param.name }}{% if not loop.last %}, {% endif %}{% endfor %})
+{% else %}    result = {% if async %}await {% endif %}{{ component_name }}_fn()
+{% endif %}
 
     # TODO: Test content structure
 {% if mime_type == "application/json" %}    import json

@@ -3,10 +3,16 @@
 from core.app import mcp
 
 
-@mcp.resource("{{ uri|default('resource://' + component_name) }}", name="{{ component_name }}")
-{% if async %}async {% endif %}def {{ component_name }}() -> str:
+@mcp.resource("{{ uri|default('resource://' + component_name) }}")
+{% if async %}async {% endif %}def {{ component_name }}({% if params|length > 0 %}
+{% for param in params %}    {{ param.name }}: {{ param.type_hint }}{% if not loop.last %},
+{% endif %}{% endfor %}
+{% endif %}) -> str:
     """{{ description }}
-
+{% if params|length > 0 %}
+    Args:
+{% for param in params %}        {{ param.name }}: {{ param.description }}
+{% endfor %}{% endif %}
     Returns:
         {{ return_description|default('Resource content as string') }}
     """
