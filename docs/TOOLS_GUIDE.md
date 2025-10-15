@@ -11,9 +11,10 @@ This guide provides comprehensive examples and best practices for creating MCP t
 5. [Error Handling](#error-handling)
 6. [Structured Outputs](#structured-outputs)
 7. [Context Usage](#context-usage)
-8. [Async vs Sync](#async-vs-sync)
-9. [Advanced Patterns](#advanced-patterns)
-10. [Testing Tools](#testing-tools)
+8. [Runtime Dependencies](#runtime-dependencies)
+9. [Async vs Sync](#async-vs-sync)
+10. [Advanced Patterns](#advanced-patterns)
+11. [Testing Tools](#testing-tools)
 
 ## Basic Tool Creation
 
@@ -340,6 +341,221 @@ await ctx.report_progress(
 - Use logging for debugging and transparency
 - Use sampling to leverage the client's LLM
 - Use elicitation for interactive workflows
+
+## Runtime Dependencies
+
+FastMCP v2.2.11+ provides runtime dependency functions that allow you to access context and HTTP information from anywhere within your tool's execution flow, not just in the tool function itself. This is particularly useful for nested utility functions.
+
+### get_context()
+
+Access the current FastMCP Context from anywhere in the request execution flow:
+
+```python
+from fastmcp.server.dependencies import get_context
+
+async def process_data_internal(data: list[float]) -> dict:
+    """Utility function that needs context but doesn't receive it as a parameter."""
+    # Get the active context - only works within a request
+    ctx = get_context()
+
+    await ctx.info(f"Processing {len(data)} data points")
+
+    return {"processed": len(data)}
+
+@mcp.tool
+async def analyze_dataset(numbers: list[float]) -> dict:
+    """Tool that calls utility function which uses context internally."""
+    # No need to pass ctx to the utility function
+    result = await process_data_internal(numbers)
+    return result
+```
+
+**When to use:**
+- Nested utility functions that need logging
+- Shared helper functions used by multiple tools
+- Deep call stacks where passing ctx through all layers is impractical
+
+**Important:** `get_context()` only works during a request. Calling it outside a request will raise a `RuntimeError`.
+
+### get_access_token()
+
+Access authenticated user's token information (FastMCP v2.11.0+):
+
+```python
+from fastmcp.server.dependencies import get_access_token, AccessToken
+
+@mcp.tool
+async def get_user_info() -> dict:
+    """Get information about the authenticated user."""
+    token: AccessToken | None = get_access_token()
+
+    if token is None:
+        return {"authenticated": False}
+
+    return {
+        "authenticated": True,
+        "client_id": token.client_id,
+        "scopes": token.scopes,
+        "user_id": token.claims.get("sub"),
+        "tenant_id": token.claims.get("tenant_id"),
+        "all_claims": token.claims,
+    }
+```
+
+**Token attributes:**
+- `client_id`: OAuth client identifier
+- `scopes`: List of granted scopes
+- `claims`: Full JWT claims dictionary
+- `expires_at`: Token expiration timestamp
+
+**When to use:**
+- Multi-tenant applications (extract tenant ID from claims)
+- Permission checking (verify scopes)
+- User identification (get user ID from `sub` claim)
+- Audit logging (track who performed actions)
+
+### get_http_headers()
+
+Safely access HTTP request headers:
+
+```python
+from fastmcp.server.dependencies import get_http_headers
+
+@mcp.tool
+async def analyze_request() -> dict:
+    """Analyze the HTTP request headers."""
+    # Get headers (returns empty dict if no request context)
+    headers = get_http_headers()
+
+    return {
+        "user_agent": headers.get("user-agent", "Unknown"),
+        "content_type": headers.get("content-type", "Unknown"),
+        "accept": headers.get("accept", "Unknown"),
+        "has_auth": bool(headers.get("authorization")),
+    }
+```
+
+**Features:**
+- Returns empty dict if not in HTTP request context (no errors)
+- By default, excludes problematic headers like `host` and `content-length`
+- Use `get_http_headers(include_all=True)` to include all headers
+
+**When to use:**
+- Content negotiation (check `accept` header)
+- User agent detection
+- Custom header processing
+- Debugging request details
+
+### get_http_request()
+
+Access the full HTTP request object for advanced use cases:
+
+```python
+from fastmcp.server.dependencies import get_http_request
+from starlette.requests import Request
+
+@mcp.tool
+async def get_request_details() -> dict:
+    """Get detailed HTTP request information."""
+    request: Request = get_http_request()
+
+    return {
+        "method": request.method,
+        "url": str(request.url),
+        "path": request.url.path,
+        "client_ip": request.client.host if request.client else "Unknown",
+        "headers_count": len(request.headers),
+    }
+```
+
+**Request attributes:**
+- `method`: HTTP method (GET, POST, etc.)
+- `url`: Full URL object
+- `headers`: Header collection
+- `client`: Client connection info
+- `path_params`: URL path parameters
+- `query_params`: Query string parameters
+
+**When to use:**
+- Need full request details beyond headers
+- IP-based access control
+- Request logging and analytics
+- URL path/query parameter access
+
+### Runtime Dependencies Best Practices
+
+1. **Prefer Parameter Injection**: Use `ctx: Context` parameter when possible - it's clearer and more testable
+2. **Use for Utilities**: Runtime dependencies shine in shared utility functions
+3. **Handle Absence Gracefully**: Check for `None` when using `get_access_token()` or use try/except for others
+4. **Document Usage**: Clearly document when functions use runtime dependencies
+5. **Test Carefully**: Mock runtime dependencies in tests (see examples below)
+
+### Testing with Runtime Dependencies
+
+```python
+import pytest
+from unittest.mock import patch, MagicMock
+from fastmcp.server.dependencies import AccessToken
+
+@pytest.mark.asyncio
+async def test_tool_with_runtime_deps():
+    """Test tool that uses runtime dependencies."""
+
+    # Mock get_access_token
+    mock_token = AccessToken(
+        client_id="test_client",
+        scopes=["read:data"],
+        claims={"sub": "user_123", "tenant_id": "tenant_abc"}
+    )
+
+    with patch('fastmcp.server.dependencies.get_access_token', return_value=mock_token):
+        result = await get_user_info()
+        assert result["authenticated"] is True
+        assert result["tenant_id"] == "tenant_abc"
+```
+
+### Example: Combining Runtime Dependencies
+
+```python
+from fastmcp.server.dependencies import get_context, get_access_token, get_http_headers
+
+async def create_audit_entry(action: str, details: dict) -> dict:
+    """Utility function that creates comprehensive audit records."""
+    # Access context for logging
+    ctx = get_context()
+    await ctx.info(f"Audit: {action}")
+
+    # Get user info from token
+    token = get_access_token()
+    user_id = token.claims.get("sub") if token else "anonymous"
+
+    # Get request info
+    headers = get_http_headers()
+    user_agent = headers.get("user-agent", "unknown")
+
+    return {
+        "action": action,
+        "details": details,
+        "user_id": user_id,
+        "user_agent": user_agent,
+        "timestamp": "2025-10-15T00:00:00Z",
+    }
+
+@mcp.tool
+async def perform_sensitive_operation(data: str) -> dict:
+    """Tool that performs audited operation."""
+    # Create audit record using runtime dependencies
+    audit = await create_audit_entry(
+        "sensitive_operation",
+        {"data_length": len(data)}
+    )
+
+    # ... perform operation ...
+
+    return {"status": "success", "audit": audit}
+```
+
+See `src/tools/examples/runtime_deps.py` for complete working examples.
 
 ## Async vs Sync
 

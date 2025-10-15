@@ -8,8 +8,10 @@ This module demonstrates:
 - Complex validation patterns
 - Proper use of tool annotations
 - Context usage patterns
+- Progress reporting for long-running operations
 """
 
+import asyncio
 from typing import Annotated, Literal
 from dataclasses import dataclass
 from pydantic import Field
@@ -288,3 +290,88 @@ async def format_text(
         await ctx.info(f"Text truncated to {max_length} characters")
 
     return result
+
+
+# Example 7: Progress Reporting for Long-Running Operations
+@mcp.tool(
+    annotations={
+        "readOnlyHint": False,
+        "idempotentHint": False,
+        "openWorldHint": False,
+    }
+)
+async def process_large_dataset(
+    num_items: Annotated[
+        int, Field(description="Number of items to process", ge=1, le=1000)
+    ] = 100,
+    delay_ms: Annotated[
+        int,
+        Field(description="Processing delay per item in milliseconds", ge=0, le=1000),
+    ] = 100,
+    ctx: Context = None,
+) -> dict:
+    """Process a large dataset with progress reporting.
+
+    Demonstrates:
+    - Progress reporting using ctx.report_progress()
+    - Long-running operation patterns
+    - Progress tracking with percentage and absolute values
+    - Informative logging at different stages
+
+    This is essential for enterprise tools that:
+    - Process large files or datasets
+    - Perform bulk operations
+    - Run time-intensive computations
+    - Need to show user feedback during execution
+
+    Args:
+        num_items: Number of items to process (simulated)
+        delay_ms: Delay per item in milliseconds (simulates processing time)
+        ctx: FastMCP Context for progress reporting
+
+    Returns:
+        dict: Processing results with statistics
+    """
+    await ctx.info(f"Starting processing of {num_items} items")
+
+    total = num_items
+    processed = 0
+    errors = 0
+    results = []
+
+    # Report initial progress (0%)
+    await ctx.report_progress(progress=0, total=total)
+
+    for i in range(num_items):
+        try:
+            # Simulate processing time
+            await asyncio.sleep(delay_ms / 1000.0)
+
+            # Simulate occasional processing
+            item_result = {"item_id": i, "status": "processed", "value": i * 2}
+            results.append(item_result)
+            processed += 1
+
+            # Report progress every 10 items or on last item
+            if (i + 1) % 10 == 0 or (i + 1) == total:
+                await ctx.report_progress(progress=i + 1, total=total)
+                percentage = ((i + 1) / total) * 100
+                await ctx.info(f"Progress: {i + 1}/{total} ({percentage:.1f}%)")
+
+        except Exception as e:
+            errors += 1
+            await ctx.warning(f"Error processing item {i}: {e}")
+
+    # Final progress report (100%)
+    await ctx.report_progress(progress=total, total=total)
+    await ctx.info(
+        f"Processing complete: {processed} succeeded, {errors} failed out of {total}"
+    )
+
+    return {
+        "total_items": total,
+        "processed": processed,
+        "errors": errors,
+        "success_rate": round((processed / total) * 100, 2) if total > 0 else 0,
+        "results_sample": results[:5],  # Return first 5 results as sample
+    }
