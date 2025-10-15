@@ -1,6 +1,6 @@
 import pytest
 from pathlib import Path
-from tools.preview_prompt import preview_prompt
+from src.tools._preview_prompt_utility import preview_prompt
 
 
 def test_missing_schema_warning(tmp_path, capsys):

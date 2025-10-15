@@ -7,7 +7,7 @@ import mcp.types as mt
 from fastmcp.server.middleware import MiddlewareContext
 from fastmcp.tools.tool import ToolResult
 
-from src.middleware.logging_middleware import LoggingMiddleware
+from src.middleware.examples.logging_middleware import LoggingMiddleware
 
 
 @pytest.mark.asyncio

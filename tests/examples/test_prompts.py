@@ -4,7 +4,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from core.app import mcp
-from prompts import analysis, documentation, general
+from prompts.examples import analysis, documentation, general
 
 
 def test_python_prompt_modules_loaded():

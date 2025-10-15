@@ -53,21 +53,21 @@ class TestToolsCompliance:
 
     def test_echo_has_annotated_params(self):
         """Test echo tool has Annotated parameter descriptions."""
-        src_path = Path(__file__).parent.parent / "src" / "tools" / "echo.py"
+        src_path = Path(__file__).parent.parent / "src" / "tools" / "examples" / "echo.py"
         func = get_function_source(src_path, "echo")
         assert func is not None
         assert has_annotated_params(func), "echo should use Annotated for parameters"
 
     def test_echo_has_context(self):
         """Test echo tool has Context parameter."""
-        src_path = Path(__file__).parent.parent / "src" / "tools" / "echo.py"
+        src_path = Path(__file__).parent.parent / "src" / "tools" / "examples" / "echo.py"
         func = get_function_source(src_path, "echo")
         assert func is not None
         assert has_context_param(func), "echo should have ctx: Context parameter"
 
     def test_write_release_notes_has_annotated_params(self):
         """Test write_release_notes has Annotated parameters."""
-        src_path = Path(__file__).parent.parent / "src" / "tools" / "needs_sampling.py"
+        src_path = Path(__file__).parent.parent / "src" / "tools" / "examples" / "needs_sampling.py"
         func = get_function_source(src_path, "write_release_notes")
         assert func is not None
         assert has_annotated_params(func), "write_release_notes should use Annotated"
@@ -75,7 +75,7 @@ class TestToolsCompliance:
     def test_get_weather_has_annotated_params(self):
         """Test get_weather has Annotated parameters."""
         src_path = (
-            Path(__file__).parent.parent / "src" / "tools" / "needs_elicitation.py"
+            Path(__file__).parent.parent / "src" / "tools" / "examples" / "needs_elicitation.py"
         )
         func = get_function_source(src_path, "get_weather")
         assert func is not None
@@ -84,14 +84,14 @@ class TestToolsCompliance:
     def test_advanced_examples_file_exists(self):
         """Test advanced_examples.py exists."""
         src_path = (
-            Path(__file__).parent.parent / "src" / "tools" / "advanced_examples.py"
+            Path(__file__).parent.parent / "src" / "tools" / "examples" / "advanced_examples.py"
         )
         assert src_path.exists(), "advanced_examples.py should exist"
 
     def test_advanced_examples_has_expected_functions(self):
         """Test advanced_examples.py has all expected demonstration functions."""
         src_path = (
-            Path(__file__).parent.parent / "src" / "tools" / "advanced_examples.py"
+            Path(__file__).parent.parent / "src" / "tools" / "examples" / "advanced_examples.py"
         )
 
         with open(src_path) as f:
@@ -115,7 +115,7 @@ class TestToolsCompliance:
     def test_advanced_examples_imports_field(self):
         """Test advanced_examples.py imports Field from pydantic."""
         src_path = (
-            Path(__file__).parent.parent / "src" / "tools" / "advanced_examples.py"
+            Path(__file__).parent.parent / "src" / "tools" / "examples" / "advanced_examples.py"
         )
 
         with open(src_path) as f:
@@ -128,7 +128,7 @@ class TestToolsCompliance:
     def test_advanced_examples_imports_tool_error(self):
         """Test advanced_examples.py imports ToolError."""
         src_path = (
-            Path(__file__).parent.parent / "src" / "tools" / "advanced_examples.py"
+            Path(__file__).parent.parent / "src" / "tools" / "examples" / "advanced_examples.py"
         )
 
         with open(src_path) as f:
@@ -141,7 +141,7 @@ class TestToolsCompliance:
     def test_advanced_examples_has_dataclass(self):
         """Test advanced_examples.py defines structured output dataclass."""
         src_path = (
-            Path(__file__).parent.parent / "src" / "tools" / "advanced_examples.py"
+            Path(__file__).parent.parent / "src" / "tools" / "examples" / "advanced_examples.py"
         )
 
         with open(src_path) as f:
@@ -150,29 +150,6 @@ class TestToolsCompliance:
         assert (
             "@dataclass" in content
         ), "advanced_examples.py should demonstrate structured output with dataclass"
-
-    def test_tools_init_exports_all_tools(self):
-        """Test tools __init__.py exports all tools."""
-        init_path = Path(__file__).parent.parent / "src" / "tools" / "__init__.py"
-
-        with open(init_path) as f:
-            content = f.read()
-
-        expected_exports = [
-            "echo",
-            "write_release_notes",
-            "get_weather",
-            "delete_all",
-            "process_data",
-            "validate_input",
-            "analyze_text",
-            "configure_system",
-            "calculate_statistics",
-            "format_text",
-        ]
-
-        for export in expected_exports:
-            assert export in content, f"tools/__init__.py should export {export}"
 
     def test_no_context_none_checks(self):
         """Test that tools don't check for ctx is None (FastMCP guarantees injection)."""
@@ -193,11 +170,11 @@ class TestToolsCompliance:
 
     def test_tools_use_type_hints(self):
         """Test that all tool files use proper type hints."""
-        tools_dir = Path(__file__).parent.parent / "src" / "tools"
+        tools_dir = Path(__file__).parent.parent / "src" / "tools" / "examples"
 
         for tool_file in tools_dir.glob("*.py"):
-            if tool_file.name == "__init__.py" or tool_file.name == "preview_prompt.py":
-                continue  # Skip __init__.py and utility files
+            if tool_file.name == "__init__.py" or tool_file.name == "README.md":
+                continue  # Skip __init__.py and docs
 
             with open(tool_file) as f:
                 content = f.read()
