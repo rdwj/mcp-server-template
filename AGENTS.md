@@ -1,3 +1,7 @@
+# AI Coding Assistant Guidelines
+
+This file provides guidance for AI coding assistants (Claude, Cursor, GitHub Copilot, etc.) working with this MCP server template.
+
 ## Project Structure and Testing Patterns
 
 ### Testing FastMCP Decorated Functions
