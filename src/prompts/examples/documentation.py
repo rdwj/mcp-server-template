@@ -8,7 +8,7 @@ API docs, code comments, README files, and technical documentation.
 from typing import Annotated
 from pydantic import Field
 
-from core.app import mcp
+from ...core.app import mcp
 
 
 @mcp.prompt()

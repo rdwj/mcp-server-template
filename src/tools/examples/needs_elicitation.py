@@ -1,7 +1,7 @@
 from typing import Annotated
 from dataclasses import dataclass
 from fastmcp import Context
-from core.app import mcp
+from ...core.app import mcp
 
 
 @dataclass

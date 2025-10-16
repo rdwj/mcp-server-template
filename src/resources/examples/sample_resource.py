@@ -1,4 +1,4 @@
-from core.app import mcp
+from ...core.app import mcp
 
 
 @mcp.resource("resource://readme-snippet", name="readme_snippet")

@@ -8,7 +8,7 @@ into more specific categories.
 from typing import Annotated, Literal
 from pydantic import Field
 
-from core.app import mcp
+from ...core.app import mcp
 
 
 @mcp.prompt()

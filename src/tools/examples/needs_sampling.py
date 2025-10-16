@@ -1,6 +1,6 @@
 from typing import Annotated
 from fastmcp import Context
-from core.app import mcp
+from ...core.app import mcp
 
 
 @mcp.tool(

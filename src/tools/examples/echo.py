@@ -1,5 +1,5 @@
 from typing import Annotated
-from core.app import mcp
+from ...core.app import mcp
 from fastmcp import Context
 
 

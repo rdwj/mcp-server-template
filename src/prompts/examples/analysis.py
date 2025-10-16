@@ -12,7 +12,7 @@ These prompts demonstrate FastMCP 2.x decorator-based prompt patterns with:
 from pydantic import Field
 
 # Import the shared mcp instance from core
-from core.app import mcp
+from ...core.app import mcp
 
 
 @mcp.prompt

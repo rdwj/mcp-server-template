@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from pydantic import Field
 from fastmcp import Context
 from fastmcp.exceptions import ToolError
-from core.app import mcp
+from ...core.app import mcp
 
 
 # Example 1: Field Validation
