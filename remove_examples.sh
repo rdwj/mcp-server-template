@@ -48,8 +48,34 @@ if [ -f "src/tools/_preview_prompt_utility.py" ]; then
     echo "✓ Removed preview_prompt utility"
 fi
 
+# Remove cache files
 echo ""
-echo "✅ All examples removed!"
+echo "🧹 Cleaning cache files..."
+
+if [ -d ".mypy_cache" ]; then
+    rm -rf .mypy_cache
+    echo "✓ Removed .mypy_cache"
+fi
+
+if [ -d ".pytest_cache" ]; then
+    rm -rf .pytest_cache
+    echo "✓ Removed .pytest_cache"
+fi
+
+if [ -d ".ruff_cache" ]; then
+    rm -rf .ruff_cache
+    echo "✓ Removed .ruff_cache"
+fi
+
+find . -type d -name '__pycache__' -exec rm -rf {} + 2>/dev/null && echo "✓ Removed __pycache__ directories" || true
+find . -name '*.pyc' -delete 2>/dev/null && echo "✓ Removed .pyc files" || true
+
+echo ""
+echo "📊 Final src/ size:"
+du -sh src/
+
+echo ""
+echo "✅ All examples and cache files removed!"
 echo ""
 echo "Your MCP server now has a clean slate."
 echo "Use 'fips-agents generate' to create new components."

@@ -33,8 +33,20 @@ sed "s|image: mcp-server:latest|image: image-registry.openshift-image-registry.s
 
 # Start build
 echo "→ Building container image..."
-echo "  Starting binary build from current directory..."
-oc start-build mcp-server --from-dir=. --follow -n $PROJECT
+echo "  Creating filtered build context..."
+
+# Create a temporary directory for the build context
+BUILD_DIR=$(mktemp -d)
+trap "rm -rf $BUILD_DIR" EXIT
+
+# Copy only necessary files (exclude __pycache__ and .pyc files)
+cp Containerfile requirements.txt pyproject.toml "$BUILD_DIR/"
+
+# Use rsync to copy src/ while excluding cache files
+rsync -a --exclude='__pycache__' --exclude='*.pyc' --exclude='*.pyo' --exclude='.mypy_cache' src/ "$BUILD_DIR/src/"
+
+echo "  Starting binary build with filtered context..."
+oc start-build mcp-server --from-dir="$BUILD_DIR" --follow -n $PROJECT
 
 # Wait for rollout
 echo "→ Deploying application..."

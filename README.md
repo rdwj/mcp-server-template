@@ -32,12 +32,17 @@ cmcp ".venv/bin/python -m src.main" tools/list
 ### Deploy to OpenShift
 
 ```bash
+# IMPORTANT: Remove examples before first deployment
+./remove_examples.sh
+
 # One-command deployment
 make deploy
 
 # Or deploy to specific project
 make deploy PROJECT=my-project
 ```
+
+> **Note**: Running `./remove_examples.sh` before deployment removes example code and cache files, significantly reducing build context size and preventing deployment timeouts.
 
 ## Project Structure
 
