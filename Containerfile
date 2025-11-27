@@ -6,8 +6,8 @@ WORKDIR /opt/app-root/src
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY src/ ./src/
+# Copy application code with proper permissions for OpenShift
+COPY --chown=1001:0 src/ ./src/
 
 # Set environment for HTTP transport
 ENV MCP_TRANSPORT=http \

@@ -2,7 +2,7 @@
 
 import pytest
 from unittest.mock import {% if async %}AsyncMock, {% endif %}MagicMock
-from src.middleware.{{ component_name }} import {{ component_name }}
+from middleware.{{ component_name }} import {{ component_name }}
 
 # Access the underlying function for testing (FastMCP decorator pattern)
 {{ component_name }}_fn = {{ component_name }}.fn

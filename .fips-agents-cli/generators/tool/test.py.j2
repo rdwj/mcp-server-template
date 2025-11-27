@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 {% if with_context and not async %}
 from unittest.mock import MagicMock
 {% endif %}
-from src.tools.{{ component_name }} import {{ component_name }}
+from tools.{{ component_name }} import {{ component_name }}
 
 # Access the underlying function for testing (FastMCP decorator pattern)
 {{ component_name }}_fn = {{ component_name }}.fn
