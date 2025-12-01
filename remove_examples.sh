@@ -26,6 +26,22 @@ if [ -d "src/resources/examples" ]; then
     echo "✓ Removed src/resources/examples"
 fi
 
+# Remove example resource subdirectories (travel theme examples)
+if [ -d "src/resources/country_profiles" ]; then
+    rm -rf src/resources/country_profiles
+    echo "✓ Removed src/resources/country_profiles"
+fi
+
+if [ -d "src/resources/checklists" ]; then
+    rm -rf src/resources/checklists
+    echo "✓ Removed src/resources/checklists"
+fi
+
+if [ -d "src/resources/emergency_protocols" ]; then
+    rm -rf src/resources/emergency_protocols
+    echo "✓ Removed src/resources/emergency_protocols"
+fi
+
 if [ -d "src/prompts/examples" ]; then
     rm -rf src/prompts/examples
     echo "✓ Removed src/prompts/examples"
