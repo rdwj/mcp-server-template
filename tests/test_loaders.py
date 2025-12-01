@@ -28,12 +28,13 @@ def test_load_tools_resources_prompts(tmp_path: Path):
         "from core.app import mcp\n@mcp.resource(\"resource://r1\")\ndef r1() -> str:\n    return 'ok'\n"
     )
 
-    # YAML + JSON schema
-    (prompts_dir / "p1.yaml").write_text(
-        "name: demo\nprompt: |\n  <output_schema>{output_schema}</output_schema>\n  Hello {name}\n"
-    )
-    (prompts_dir / "p1.json").write_text(
-        '{"type":"object","properties":{"ok":{"type":"boolean"}},"required":["ok"]}'
+    # Write a simple prompt (Python-based with FastMCP decorator)
+    (prompts_dir / "p1.py").write_text(
+        "from core.app import mcp\n"
+        "from pydantic import Field\n\n"
+        "@mcp.prompt\n"
+        "def demo(name: str = Field(description='Name to greet')) -> str:\n"
+        "    return f'Hello {name}'\n"
     )
 
     # Ensure import path includes temp src
