@@ -11,10 +11,10 @@ from fastmcp import Context
 from fastmcp import Context
 {% endif %}
 {% if with_auth %}
-from core.auth import requires_scopes
+from src.core.auth import requires_scopes
 {% endif %}
 from fastmcp.exceptions import ToolError
-from core.app import mcp
+from src.core.app import mcp
 
 
 @mcp.tool(

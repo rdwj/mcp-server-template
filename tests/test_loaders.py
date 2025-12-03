@@ -1,10 +1,8 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
-from core.app import mcp
-from core.loaders import load_tools, load_resources, load_prompts
+from src.core.app import mcp
+from src.core.loaders import load_tools, load_resources, load_prompts
 
 
 def test_load_tools_resources_prompts(tmp_path: Path):
@@ -20,25 +18,25 @@ def test_load_tools_resources_prompts(tmp_path: Path):
 
     # Write a simple tool
     (tools_dir / "t1.py").write_text(
-        "from core.app import mcp\nfrom fastmcp import Context\n@mcp.tool\nasync def t1(x: int, ctx: Context) -> int:\n    await ctx.debug('adding one')\n    return x + 1\n"
+        "from src.core.app import mcp\nfrom fastmcp import Context\n@mcp.tool\nasync def t1(x: int, ctx: Context) -> int:\n    await ctx.debug('adding one')\n    return x + 1\n"
     )
 
     # Write a simple resource
     (resources_dir / "r1.py").write_text(
-        "from core.app import mcp\n@mcp.resource(\"resource://r1\")\ndef r1() -> str:\n    return 'ok'\n"
+        "from src.core.app import mcp\n@mcp.resource(\"resource://r1\")\ndef r1() -> str:\n    return 'ok'\n"
     )
 
     # Write a simple prompt (Python-based with FastMCP decorator)
     (prompts_dir / "p1.py").write_text(
-        "from core.app import mcp\n"
+        "from src.core.app import mcp\n"
         "from pydantic import Field\n\n"
         "@mcp.prompt\n"
         "def demo(name: str = Field(description='Name to greet')) -> str:\n"
         "    return f'Hello {name}'\n"
     )
 
-    # Ensure import path includes temp src
-    sys.path.insert(0, str(src_base))
+    # Ensure import path includes temp directory so src.* imports work
+    sys.path.insert(0, str(tmp_path))
 
     c1 = load_tools(mcp, tools_dir)
     c2 = load_resources(mcp, resources_dir)

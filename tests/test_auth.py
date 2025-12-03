@@ -1,15 +1,9 @@
 import os
-import sys
-from pathlib import Path
 
 import jwt
 import pytest
 
-
-# Ensure we can import from src/
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-
-from core.auth import requires_scopes  # noqa: E402
+from src.core.auth import requires_scopes
 
 
 class _DummyCtx:

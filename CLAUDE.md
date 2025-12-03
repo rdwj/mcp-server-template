@@ -46,6 +46,28 @@ The server uses dynamic component loading at startup via `src/core/loaders.py`:
 
 Components register themselves via FastMCP decorators (`@mcp.tool`, `@mcp.resource`, `@mcp.prompt`) that reference the shared `mcp` instance from `src/core/app.py`.
 
+### Import Convention
+
+**IMPORTANT**: Always use the `src.` prefix for all imports within this project:
+
+```python
+# Correct - always use src. prefix
+from src.core.app import mcp
+from src.core.auth import requires_scopes
+from src.tools.my_tool import my_tool
+
+# Incorrect - do NOT use short-form imports
+from core.app import mcp  # WRONG
+from tools.my_tool import my_tool  # WRONG
+```
+
+This convention ensures consistent imports across:
+- Component files in `src/tools/`, `src/resources/`, `src/prompts/`, `src/middleware/`
+- Test files in `tests/`
+- The dynamic loader system
+
+The `conftest.py` at project root adds the project directory to `sys.path`, enabling `src.*` imports.
+
 ### Module Structure
 
 ```

@@ -85,6 +85,7 @@ kind: Route
 metadata:
   name: mcp-server
 spec:
+  path: /mcp/
   to:
     kind: Service
     name: mcp-server

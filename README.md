@@ -335,7 +335,7 @@ Create a file in `src/middleware/`:
 ```python
 from typing import Any, Callable
 from fastmcp import Context
-from core.app import mcp
+from src.core.app import mcp
 
 @mcp.middleware()
 async def my_middleware(

@@ -34,7 +34,7 @@ def _load_module_from_path(module_name: str, file_path: Path) -> None:
 def load_tools(mcp: FastMCP, tools_dir: Path) -> int:
     """Load tool modules using package import names consistently with hot‑reload.
 
-    We import modules as "tools.<name>" so that hot‑reload can safely reload the
+    We import modules as "src.tools.<name>" so that hot‑reload can safely reload the
     same module names without creating duplicate registrations.
     """
     added = 0
@@ -43,8 +43,8 @@ def load_tools(mcp: FastMCP, tools_dir: Path) -> int:
     for py_file in tools_dir.glob("*.py"):
         if py_file.name == "__init__.py":
             continue
-        module_name_pkg = f"tools.{py_file.stem}"
-        module_name_synth = f"tools__{py_file.stem}"
+        module_name_pkg = f"src.tools.{py_file.stem}"
+        module_name_synth = f"src_tools__{py_file.stem}"
         try:
             # Prefer package import if available
             importlib.import_module(module_name_pkg)
@@ -64,7 +64,7 @@ def load_resources(mcp: FastMCP, resources_dir: Path) -> int:
     """Load resource modules using package import names consistently.
 
     Supports subdirectories: resources/country-profiles/japan.py becomes
-    resources.country-profiles.japan (with hyphens converted to underscores for Python).
+    src.resources.country_profiles.japan.
     """
     added = 0
     if not resources_dir.exists():
@@ -80,8 +80,8 @@ def load_resources(mcp: FastMCP, resources_dir: Path) -> int:
         parts = list(rel_path.parts[:-1]) + [rel_path.stem]  # Remove .py and split path
         module_suffix = ".".join(parts)
 
-        module_name_pkg = f"resources.{module_suffix}"
-        module_name_synth = f"resources__{module_suffix.replace('.', '__')}"
+        module_name_pkg = f"src.resources.{module_suffix}"
+        module_name_synth = f"src_resources__{module_suffix.replace('.', '__')}"
 
         try:
             importlib.import_module(module_name_pkg)
@@ -109,8 +109,8 @@ def load_prompts(mcp: FastMCP, prompts_dir: Path) -> int:
     for py_file in prompts_dir.glob("*.py"):
         if py_file.name == "__init__.py":
             continue
-        module_name_pkg = f"prompts.{py_file.stem}"
-        module_name_synth = f"prompts__{py_file.stem}"
+        module_name_pkg = f"src.prompts.{py_file.stem}"
+        module_name_synth = f"src_prompts__{py_file.stem}"
         try:
             importlib.import_module(module_name_pkg)
             log.info(f"Loaded prompt module: {module_name_pkg}")
@@ -151,8 +151,8 @@ def load_middleware(mcp: FastMCP, middleware_dir: Path) -> int:
         if py_file.name == "__init__.py":
             continue
 
-        module_name_pkg = f"middleware.{py_file.stem}"
-        module_name_synth = f"middleware__{py_file.stem}"
+        module_name_pkg = f"src.middleware.{py_file.stem}"
+        module_name_synth = f"src_middleware__{py_file.stem}"
 
         try:
             # Import the module
@@ -214,25 +214,25 @@ class _ReloadHandler(FileSystemEventHandler):  # type: ignore[misc]
             prompts_dir = self.base / "prompts"
             middleware_dir = self.base / "middleware"
 
-            for module_name in list(_iter_modules(tools_dir, "tools")):
+            for module_name in list(_iter_modules(tools_dir, "src.tools")):
                 if module_name in sys.modules:
                     importlib.reload(sys.modules[module_name])
                 else:
                     importlib.import_module(module_name)
 
-            for module_name in list(_iter_modules(resources_dir, "resources")):
+            for module_name in list(_iter_modules(resources_dir, "src.resources")):
                 if module_name in sys.modules:
                     importlib.reload(sys.modules[module_name])
                 else:
                     importlib.import_module(module_name)
 
-            for module_name in list(_iter_modules(prompts_dir, "prompts")):
+            for module_name in list(_iter_modules(prompts_dir, "src.prompts")):
                 if module_name in sys.modules:
                     importlib.reload(sys.modules[module_name])
                 else:
                     importlib.import_module(module_name)
 
-            for module_name in list(_iter_modules(middleware_dir, "middleware")):
+            for module_name in list(_iter_modules(middleware_dir, "src.middleware")):
                 if module_name in sys.modules:
                     importlib.reload(sys.modules[module_name])
                 else:

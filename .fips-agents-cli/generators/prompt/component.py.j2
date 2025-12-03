@@ -7,7 +7,7 @@ from fastmcp.prompts.prompt import Message, PromptMessage, PromptResult, TextCon
 {% if with_context -%}
 from fastmcp import Context
 {% endif -%}
-from core.app import mcp
+from src.core.app import mcp
 
 
 {% if prompt_name or title or tags or not enabled or meta -%}

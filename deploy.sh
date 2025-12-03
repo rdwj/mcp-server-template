@@ -53,18 +53,19 @@ echo "→ Deploying application..."
 oc rollout restart deployment/mcp-server -n $PROJECT 2>/dev/null || true
 oc rollout status deployment/mcp-server -n $PROJECT --timeout=300s
 
-# Get route
-ROUTE=$(oc get route mcp-server -n $PROJECT -o jsonpath='{.spec.host}' 2>/dev/null || echo "")
+# Get route (host and path)
+ROUTE_HOST=$(oc get route mcp-server -n $PROJECT -o jsonpath='{.spec.host}' 2>/dev/null || echo "")
+ROUTE_PATH=$(oc get route mcp-server -n $PROJECT -o jsonpath='{.spec.path}' 2>/dev/null || echo "/mcp/")
 
 echo ""
 echo "========================================="
 echo "✅ Deployment Complete!"
 echo "========================================="
-if [ -n "$ROUTE" ]; then
-    echo "MCP Server URL: https://$ROUTE/mcp/"
+if [ -n "$ROUTE_HOST" ]; then
+    echo "MCP Server URL: https://${ROUTE_HOST}${ROUTE_PATH}"
     echo ""
     echo "Test with MCP Inspector:"
-    echo "  npx @modelcontextprotocol/inspector https://$ROUTE/mcp/"
+    echo "  npx @modelcontextprotocol/inspector https://${ROUTE_HOST}${ROUTE_PATH}"
 else
     echo "Warning: Could not retrieve route URL"
 fi

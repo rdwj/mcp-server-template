@@ -5,8 +5,8 @@ from typing import Any, Callable
 from fastmcp import Context
 {% endif %}
 from fastmcp.exceptions import ToolError
-from core.app import mcp
-from core.logging import get_logger
+from src.core.app import mcp
+from src.core.logging import get_logger
 
 log = get_logger("middleware.{{ component_name }}")
 
