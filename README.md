@@ -144,6 +144,9 @@ async def my_tool(
 See [TOOLS_GUIDE.md](docs/TOOLS_GUIDE.md) for comprehensive examples and patterns.
 
 **Generator examples:**
+
+> **Note**: `fips-agents` is a global CLI tool (installed via pipx). Run it directly - do NOT use `.venv/bin/fips-agents`.
+
 ```bash
 # Simple tool
 fips-agents generate tool my_tool \

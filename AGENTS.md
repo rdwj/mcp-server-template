@@ -35,6 +35,8 @@ For each tool in `TOOLS_PLAN.md`:
 3. Update tests in `tests/test_<name>.py`
 4. Run tests: `.venv/bin/pytest tests/test_<name>.py -v`
 
+**Note**: `fips-agents` is a global CLI tool (installed via pipx) - run it directly without any venv prefix. Only `pytest` and other project dependencies use `.venv/bin/`.
+
 ### Step 3: Exercise Tools
 
 Test usability by role-playing as the agent that will consume these tools:

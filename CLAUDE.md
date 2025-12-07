@@ -173,6 +173,8 @@ class MyMiddleware(Middleware):
 
 ## Generator CLI
 
+**IMPORTANT**: `fips-agents` is a global CLI tool installed via pipx. Do NOT use `.venv/bin/fips-agents` - just run `fips-agents` directly.
+
 ```bash
 # Generate tool
 fips-agents generate tool my_tool --description "Tool description" --async --with-context

@@ -19,6 +19,8 @@ Read `TOOLS_PLAN.md` and extract the list of tools to implement.
 
 ### Step 2: Generate Tool Scaffolds
 
+**IMPORTANT**: `fips-agents` is a global CLI tool (installed via pipx). Run it directly - do NOT use `.venv/bin/fips-agents`.
+
 For each tool in the plan, run:
 
 ```bash

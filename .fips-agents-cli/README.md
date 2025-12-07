@@ -2,6 +2,8 @@
 
 This directory contains Jinja2 templates used by the `fips-agents generate` command to scaffold new MCP components.
 
+**Note**: `fips-agents` is a global CLI tool installed via pipx. Run it directly - do NOT use `.venv/bin/fips-agents`. Only project dependencies like `pytest` use the `.venv/bin/` prefix.
+
 ## How It Works
 
 When you run a generate command like:
