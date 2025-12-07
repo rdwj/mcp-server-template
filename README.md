@@ -44,6 +44,40 @@ make deploy PROJECT=my-project
 
 > **Note**: Running `./remove_examples.sh` before deployment removes example code and cache files, significantly reducing build context size and preventing deployment timeouts.
 
+## Claude Code Workflow
+
+This template includes slash commands for Claude Code that provide a structured workflow for developing MCP tools.
+
+### Recommended Sequence
+
+```
+/plan-tools          →  TOOLS_PLAN.md (planning, no code)
+        ↓
+/create-tools        →  Generate + implement tools in parallel
+        ↓
+/exercise-tools      →  Test ergonomics as consuming agent
+        ↓
+/deploy-mcp PROJECT=x  →  Deploy to OpenShift (optional)
+```
+
+### Slash Commands
+
+| Command | Description |
+|---------|-------------|
+| `/plan-tools` | Reads [Anthropic's tool design guidance](https://www.anthropic.com/engineering/writing-tools-for-agents) and your proposal, then creates `TOOLS_PLAN.md` with tool specifications. Planning only - no code. |
+| `/create-tools` | Reads `TOOLS_PLAN.md`, generates scaffolds with `fips-agents`, and implements each tool in parallel using subagents for efficiency. |
+| `/exercise-tools` | Role-plays as the agent that will consume these tools, testing ergonomics, error messages, and composability. Provides structured feedback and makes improvements. |
+| `/deploy-mcp PROJECT=name` | Runs pre-flight checks (permissions, tests), deploys to OpenShift, and verifies with `mcp-test-mcp`. |
+
+### When to Use Each Command
+
+- **Starting a new MCP server**: Run `/plan-tools` first to design your tools before writing any code
+- **After planning is approved**: Run `/create-tools` to implement everything in parallel
+- **Before deployment**: Run `/exercise-tools` to catch usability issues
+- **For remote MCP servers**: Run `/deploy-mcp` to deploy to OpenShift
+
+See [CLAUDE.md](CLAUDE.md) for detailed documentation on the workflow, known issues, and troubleshooting.
+
 ## Project Structure
 
 ```

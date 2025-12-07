@@ -1,6 +1,6 @@
 [project]
 name = "fastmcp-unified-template"
-version = "0.3.0"
+version = "0.4.0"
 description = "MCP server template with dynamic tools/resources, YAML prompts (JSON schema injection), hot‑reload, Kubernetes/OpenShift, and tests"
 requires-python = ">=3.11"
 authors = [{name = "Your Name", email = "you@example.com"}]

@@ -2,9 +2,9 @@ import os
 from pathlib import Path
 from typing import Optional
 from dotenv import load_dotenv
-from .app import mcp
-from .loaders import load_all, start_hot_reload
-from .logging import configure_logging, get_logger
+from src.core.app import mcp
+from src.core.loaders import load_all, start_hot_reload
+from src.core.logging import configure_logging, get_logger
 
 log = get_logger("bootstrap")
 

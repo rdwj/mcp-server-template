@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-
-from core.server import UnifiedMCPServer  # noqa: E402
+from src.core.server import UnifiedMCPServer
 
 
 def main() -> None:

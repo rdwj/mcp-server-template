@@ -196,3 +196,133 @@ fips-agents generate middleware my_middleware --description "Middleware descript
 ## Pre-deployment
 
 Run `./remove_examples.sh` before first deployment to remove example code and reduce build context size.
+
+## MCP Development Workflow
+
+This template provides slash commands for a structured development workflow:
+
+### Recommended Sequence
+
+```
+/plan-tools              → Creates TOOLS_PLAN.md (planning only, no code)
+        ↓
+/create-tools            → Generates and implements tools in parallel
+        ↓
+/exercise-tools          → Tests ergonomics by role-playing as consuming agent
+        ↓
+/deploy-mcp PROJECT=x    → Deploys to OpenShift (optional, for remote MCP servers)
+```
+
+### Slash Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/plan-tools` | Read Anthropic's tool design article, create `TOOLS_PLAN.md` |
+| `/create-tools` | Generate scaffolds with `fips-agents`, implement in parallel subagents |
+| `/exercise-tools` | Role-play as consuming agent, test usability, refine |
+| `/deploy-mcp PROJECT=x` | Pre-flight checks, deploy to OpenShift, verify with mcp-test-mcp |
+
+### Tool Design Reference
+
+Before planning tools, the `/plan-tools` command reads:
+**https://www.anthropic.com/engineering/writing-tools-for-agents**
+
+Key principles:
+- Tools should have clear, descriptive names
+- Parameters should be intuitive and well-documented
+- Error messages should help agents recover
+- Fewer, more powerful tools are better than many simple ones
+
+## Known Issues and Fixes
+
+### File Permission Issue
+
+**Problem**: Files created by Claude Code subagents may have `600` permissions, which prevents the OpenShift container from reading them.
+
+**Symptoms**: MCP server starts but reports 0 tools loaded:
+```
+PermissionError: [Errno 13] Permission denied: '/opt/app-root/src/src/core/some_file.py'
+Loaded: {'tools': 0, 'resources': 0, 'prompts': 0, 'middleware': 0}
+```
+
+**Fix** (run before deployment):
+```bash
+find src -name "*.py" -perm 600 -exec chmod 644 {} \;
+```
+
+The `/deploy-mcp` command runs this automatically.
+
+### Import Namespace Issue
+
+**Problem**: Using relative imports or path manipulation can create dual FastMCP instances.
+
+**Solution**: Always use `src.` prefixed absolute imports (see Import Convention section above).
+
+## Testing MCP Servers
+
+### Local Testing with cmcp
+
+```bash
+# Start server in STDIO mode
+make run-local
+
+# In another terminal, test tools
+cmcp ".venv/bin/python -m src.main" tools/list
+cmcp ".venv/bin/python -m src.main" tools/call my_tool '{"param": "value"}'
+```
+
+### Remote Testing with mcp-test-mcp
+
+After deployment, use `mcp-test-mcp` to verify the server works:
+
+```bash
+# List available tools
+mcp-test-mcp list_tools --server-url https://<route>/mcp/
+
+# Test a specific tool
+mcp-test-mcp test_tool --server-url https://<route>/mcp/ \
+  --tool-name my_tool \
+  --params '{"param": "value"}'
+```
+
+**Important**: If `mcp-test-mcp` tools are not available, ask to have it enabled before testing deployed MCP servers.
+
+## Deployment Guidelines
+
+### OpenShift Deployment
+
+Each MCP server should deploy to its own OpenShift project to avoid naming collisions:
+
+```bash
+make deploy PROJECT=my-mcp-server
+```
+
+### Pre-deployment Checklist
+
+- [ ] All tests pass: `.venv/bin/pytest tests/ -v --ignore=tests/examples/`
+- [ ] Permissions fixed: `find src -name "*.py" -perm 600 -exec chmod 644 {} \;`
+- [ ] Dependencies in both `pyproject.toml` and `requirements.txt`
+- [ ] No hardcoded secrets in source files
+- [ ] `.dockerignore` excludes `__pycache__/`, `.venv/`, `tests/`
+
+### Environment Variables
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `MCP_TRANSPORT` | `stdio` | Transport mode: `stdio` or `http` |
+| `MCP_HTTP_HOST` | `127.0.0.1` | HTTP bind address |
+| `MCP_HTTP_PORT` | `8000` | HTTP port |
+| `MCP_HTTP_PATH` | `/mcp/` | HTTP endpoint path |
+| `MCP_LOG_LEVEL` | `INFO` | Logging level |
+| `MCP_HOT_RELOAD` | `0` | Enable hot-reload for development |
+| `MCP_SERVER_NAME` | `fastmcp-unified` | Server name in MCP responses |
+
+## Context Management
+
+When working on this project, use subagents to preserve context:
+
+- **Long terminal output** (builds, deploys): Use `terminal-worker` subagent
+- **Parallel tool implementation**: Use `claude-worker` subagents (one per tool)
+- **Research tasks**: Use appropriate specialized subagents
+
+This prevents context compression from losing important information about issues encountered.
