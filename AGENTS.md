@@ -2,6 +2,68 @@
 
 This file provides guidance for AI coding assistants (Claude, Cursor, GitHub Copilot, etc.) working with this MCP server template.
 
+## MCP Development Workflow
+
+This template provides a structured workflow for developing MCP tools. If using Claude Code, use the slash commands. For other assistants, follow this sequence manually:
+
+### Recommended Sequence
+
+```
+1. Plan Tools      →  Create TOOLS_PLAN.md (planning only, no code)
+2. Create Tools    →  Generate scaffolds, implement in parallel
+3. Exercise Tools  →  Test ergonomics by role-playing as consumer
+4. Deploy (opt.)   →  Deploy to OpenShift if needed
+```
+
+### Step 1: Plan Tools
+
+Before writing any code:
+1. Read Anthropic's tool design guidance: https://www.anthropic.com/engineering/writing-tools-for-agents
+2. Review any existing proposal or requirements
+3. Create `TOOLS_PLAN.md` with tool specifications including:
+   - Tool name and purpose
+   - Parameters with types and descriptions
+   - Return values
+   - Error cases
+   - Example usage
+
+### Step 2: Create Tools
+
+For each tool in `TOOLS_PLAN.md`:
+1. Generate scaffold: `fips-agents generate tool <name> --description "<desc>" --async --with-context`
+2. Implement the tool in `src/tools/<name>.py`
+3. Update tests in `tests/test_<name>.py`
+4. Run tests: `.venv/bin/pytest tests/test_<name>.py -v`
+
+### Step 3: Exercise Tools
+
+Test usability by role-playing as the agent that will consume these tools:
+- Are parameter names intuitive?
+- Do error messages help with recovery?
+- Do tools compose well together?
+
+### Step 4: Deploy (Optional)
+
+Before deployment:
+1. Fix permissions: `find src -name "*.py" -perm 600 -exec chmod 644 {} \;`
+2. Run all tests: `.venv/bin/pytest tests/ -v --ignore=tests/examples/`
+3. Deploy: `make deploy PROJECT=<server-name>`
+4. Verify with `mcp-test-mcp` if available
+
+### Import Convention
+
+**IMPORTANT**: Always use the `src.` prefix for all imports:
+
+```python
+# Correct
+from src.core.app import mcp
+from src.tools.my_tool import my_tool
+
+# Incorrect - creates dual namespace issues
+from core.app import mcp
+from tools.my_tool import my_tool
+```
+
 ## Project Structure and Testing Patterns
 
 ### Testing FastMCP Decorated Functions

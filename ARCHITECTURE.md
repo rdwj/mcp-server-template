@@ -180,3 +180,72 @@ Environment variables (selected):
 ## CLI Deployment
 
 `mcp-deploy` prompts for namespace, app name, and HTTP settings, applies ImageStream/BuildConfig, performs a binary build, applies runtime manifests, sets env, waits for rollout, and prints the Route host.
+
+## Development Workflow
+
+The recommended workflow for developing MCP tools follows these phases:
+
+```mermaid
+flowchart LR
+  A[Plan] --> B[Create]
+  B --> C[Exercise]
+  C --> D[Deploy]
+
+  A -->|TOOLS_PLAN.md| A
+  B -->|fips-agents generate| B
+  C -->|Role-play as consumer| C
+  D -->|make deploy| D
+```
+
+### Phase 1: Plan Tools (`/plan-tools`)
+
+Before implementation:
+1. Read Anthropic's tool design guidance
+2. Create `TOOLS_PLAN.md` with specifications for each tool
+3. Get approval before writing code
+
+### Phase 2: Create Tools (`/create-tools`)
+
+For each tool in the plan:
+1. Generate scaffold with `fips-agents generate tool`
+2. Implement the tool logic
+3. Write comprehensive tests
+4. Run tests to verify
+
+### Phase 3: Exercise Tools (`/exercise-tools`)
+
+Test ergonomics by role-playing as the consuming agent:
+- Verify parameter names are intuitive
+- Check that error messages help with recovery
+- Ensure tools compose well together
+
+### Phase 4: Deploy (`/deploy-mcp`)
+
+Pre-deployment checklist:
+1. Fix file permissions: `find src -name "*.py" -perm 600 -exec chmod 644 {} \;`
+2. Run all tests
+3. Deploy to OpenShift: `make deploy PROJECT=<name>`
+4. Verify with `mcp-test-mcp`
+
+## Known Issues
+
+### File Permission Issue
+
+Files created by Claude Code subagents may have `600` permissions, preventing the OpenShift container from reading them. Always run the permission fix before deployment:
+
+```bash
+find src -name "*.py" -perm 600 -exec chmod 644 {} \;
+```
+
+### Import Namespace Issue
+
+Using relative imports or path manipulation can create dual FastMCP instances where tools register to one instance but the server runs another. Always use `src.` prefixed absolute imports:
+
+```python
+# Correct
+from src.core.app import mcp
+
+# Incorrect
+from core.app import mcp
+from .app import mcp
+```
