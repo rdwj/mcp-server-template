@@ -1,4 +1,4 @@
-"""Pytest configuration for the classroom-mcp-server project.
+"""Pytest configuration for MCP server projects.
 
 This file is placed at the project root to ensure the src directory
 is added to Python's path before any test modules are imported.
