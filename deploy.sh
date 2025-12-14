@@ -45,6 +45,16 @@ cp Containerfile requirements.txt pyproject.toml "$BUILD_DIR/"
 # Use rsync to copy src/ while excluding cache files
 rsync -a --exclude='__pycache__' --exclude='*.pyc' --exclude='*.pyo' --exclude='.mypy_cache' src/ "$BUILD_DIR/src/"
 
+# FIX: Claude Code's Write tool creates files with 600 permissions (owner-only).
+# OpenShift containers run as arbitrary non-root UIDs that need at least 644.
+# Fix permissions in the build directory before sending to OpenShift.
+# Note: Containerfile also has this fix as a backup, but fixing here provides visibility.
+FIXED_COUNT=$(find "$BUILD_DIR/src" -name "*.py" -perm 600 2>/dev/null | wc -l | tr -d ' ')
+if [ "$FIXED_COUNT" -gt "0" ]; then
+    echo "  Fixing $FIXED_COUNT file(s) with 600 permissions (Claude Code Write tool issue)..."
+    find "$BUILD_DIR/src" -name "*.py" -perm 600 -exec chmod 644 {} \;
+fi
+
 echo "  Starting binary build with filtered context..."
 oc start-build mcp-server --from-dir="$BUILD_DIR" --follow -n $PROJECT
 

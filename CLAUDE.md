@@ -237,9 +237,9 @@ Key principles:
 
 ## Known Issues and Fixes
 
-### File Permission Issue
+### File Permission Issue (Auto-Fixed)
 
-**Problem**: Files created by Claude Code subagents may have `600` permissions, which prevents the OpenShift container from reading them.
+**Problem**: Claude Code's Write tool creates files with `600` permissions (owner-only read/write) as a security measure. OpenShift containers run as arbitrary non-root UIDs that need at least `644` (world-readable) permissions.
 
 **Symptoms**: MCP server starts but reports 0 tools loaded:
 ```
@@ -247,12 +247,16 @@ PermissionError: [Errno 13] Permission denied: '/opt/app-root/src/src/core/some_
 Loaded: {'tools': 0, 'resources': 0, 'prompts': 0, 'middleware': 0}
 ```
 
-**Fix** (run before deployment):
+**Automatic Fixes in Place**:
+1. **Containerfile**: `RUN find ./src -name "*.py" -exec chmod 644 {} \;` ensures correct permissions in every build
+2. **deploy.sh**: Fixes permissions in the build context and reports how many files were fixed
+
+**Manual Fix** (if needed):
 ```bash
 find src -name "*.py" -perm 600 -exec chmod 644 {} \;
 ```
 
-The `/deploy-mcp` command runs this automatically.
+**Why This Happens**: This is Claude Code security behavior, not OS behavior. The Write tool intentionally creates files with restrictive permissions to prevent accidental exposure of sensitive content. The Containerfile and deploy.sh fixes ensure this doesn't break OpenShift deployments.
 
 ### Import Namespace Issue
 
